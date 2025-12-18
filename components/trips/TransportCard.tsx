@@ -104,14 +104,35 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                         </div>
 
                         {/* Arrow/Direction Line */}
-                        <div className="flex-shrink-0 w-full sm:w-24 md:w-32 lg:w-40 relative py-2 sm:py-0">
-                            <div className="w-full h-0.5 bg-gray-200 dark:bg-gray-700 relative flex items-center justify-center">
-                                {/* The Arrowhead at the far right, pointing to destination */}
-                                <div className="absolute -right-0.5 -top-[3.5px] w-2 h-2 border-t-2 border-r-2 border-gray-300 dark:border-gray-600 rotate-45"></div>
+                        <div className="flex-shrink-0 w-full sm:w-48 md:w-64 lg:w-80 relative py-6 sm:py-0">
+                            <div className="w-full h-[1.5px] bg-gray-100 dark:bg-gray-800/50 relative flex items-center justify-center">
+                                {/* Animation Container - This contains the moving elements and handles clipping */}
+                                <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-full">
+                                    {/* Animated Traveling Element (Light pulse) */}
+                                    <div
+                                        className="absolute inset-y-0 w-24 bg-gradient-to-r from-transparent via-current to-transparent animate-travel-line opacity-40"
+                                        style={{ color: `var(--${color === 'emerald' ? 'green' : color}-500)` }}
+                                    ></div>
 
-                                {/* Transport Type Badge */}
-                                <div className="absolute bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full border border-gray-100 dark:border-gray-700 flex items-center gap-1.5 shadow-sm">
-                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{transport.type}</span>
+                                    {/* The Moving Dot (Plane/Train head) */}
+                                    <div
+                                        className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full animate-travel-line z-10"
+                                        style={{
+                                            backgroundColor: `var(--${color === 'emerald' ? 'green' : color}-500)`,
+                                            boxShadow: `0 0 10px var(--${color === 'emerald' ? 'green' : color}-500)`,
+                                            animationDelay: '0.1s'
+                                        }}
+                                    ></div>
+                                </div>
+
+                                {/* The Arrowhead - Outside overflow container to prevent tip clipping */}
+                                <div className="absolute -right-1 -top-[4px] w-2.5 h-2.5 border-t-2 border-r-2 border-gray-400 dark:border-gray-500 rotate-45 z-20"></div>
+
+                                {/* Transport Type Badge - On top of everything */}
+                                <div className="absolute top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 px-6 py-2.5 sm:px-12 sm:py-4 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-xl z-30 hover:scale-110 transition-transform cursor-default min-w-[100px] sm:min-w-[180px]">
+                                    <span className="text-[14px] sm:text-[24px] font-black uppercase tracking-wider sm:tracking-[0.2em] leading-none text-center" style={{ color: `var(--${color === 'emerald' ? 'green' : color}-600)` }}>
+                                        {transport.type}
+                                    </span>
                                 </div>
                             </div>
                         </div>
