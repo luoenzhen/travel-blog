@@ -34,6 +34,14 @@ interface TripState {
 
 const LOCAL_STORAGE_KEY = 'travel_blog_guest_trips';
 
+// Helper to generate IDs (fallback for crypto.randomUUID)
+const generateId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+
 // Helper to save to local storage
 const saveToLocalStorage = (trips: Trip[]) => {
     if (typeof window === 'undefined') return;
@@ -137,7 +145,7 @@ export const useTripStore = create<TripState>((set, get) => ({
             } else {
                 if (typeof window !== 'undefined') {
                     const newTrip: Trip = {
-                        id: crypto.randomUUID(),
+                        id: generateId(),
                         userId: 'guest',
                         title: tripData.title || 'Untitled Trip',
                         destination: tripData.destination || 'Unknown',
@@ -218,7 +226,7 @@ export const useTripStore = create<TripState>((set, get) => ({
         for (let i = 0; i < dayCount; i++) {
             const date = addDays(start, i);
             days.push({
-                id: crypto.randomUUID(),
+                id: generateId(),
                 tripId: trip.id,
                 date: Timestamp.fromDate(date),
                 dayNumber: i + 1,
@@ -706,7 +714,7 @@ export const useTripStore = create<TripState>((set, get) => ({
 
         try {
             // Basic validation and transformation
-            const newTripId = crypto.randomUUID();
+            const newTripId = generateId();
             const now = Timestamp.now();
 
             // Helper to safe convert date string to Timestamp
@@ -731,12 +739,12 @@ export const useTripStore = create<TripState>((set, get) => ({
                 updatedAt: now,
                 days: (tripData.days || []).map((day: any) => ({
                     ...day,
-                    id: crypto.randomUUID(),
+                    id: generateId(),
                     tripId: newTripId,
                     date: toTimestamp(day.date),
-                    transportation: (day.transportation || day.flights || []).map((f: any) => ({ ...f, id: crypto.randomUUID(), departureTime: toTimestamp(f.departureTime), arrivalTime: toTimestamp(f.arrivalTime) })),
-                    activities: (day.activities || []).map((a: any) => ({ ...a, id: crypto.randomUUID() })),
-                    accommodation: day.accommodation ? { ...day.accommodation, id: crypto.randomUUID() } : undefined
+                    transportation: (day.transportation || day.flights || []).map((f: any) => ({ ...f, id: generateId(), departureTime: toTimestamp(f.departureTime), arrivalTime: toTimestamp(f.arrivalTime) })),
+                    activities: (day.activities || []).map((a: any) => ({ ...a, id: generateId() })),
+                    accommodation: day.accommodation ? { ...day.accommodation, id: generateId() } : undefined
                 }))
             };
 
