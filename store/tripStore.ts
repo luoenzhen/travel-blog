@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Trip, DayPlan, Activity, TransportationDetails, AccommodationDetails } from '@/types';
+import { Trip, DayPlan, Activity, TransportationDetails, AccommodationDetails, TripBudget } from '@/types';
 import { createTrip, getUserTrips, deleteTrip, updateTrip } from '@/lib/firebase/trips';
 import { useAuthStore } from './authStore';
 import { Timestamp } from 'firebase/firestore';
@@ -27,6 +27,7 @@ interface TripState {
     removeAccommodation: (tripId: string, accommodationId: string) => Promise<void>;
     toggleTripLock: (tripId: string) => Promise<void>;
     updateTripDetails: (tripId: string, updates: Partial<Trip>) => Promise<void>;
+    updateTripBudget: (tripId: string, budget: TripBudget) => Promise<void>;
     importTrip: (tripData: any) => Promise<void>;
     updateDayOrder: (tripId: string, dayId: string, newOrder: string[]) => Promise<void>;
     reset: () => void;
@@ -270,11 +271,25 @@ export const useTripStore = create<TripState>((set, get) => ({
             return day;
         });
 
-        const updatedTrip = { ...trip, days: updatedDays };
+        // Update Budget
+        const newSpending = { ...trip.budget.actualSpending };
+        newSpending.activities = (newSpending.activities || 0) + (activity.cost || 0);
+
+        const updatedTrip = {
+            ...trip,
+            days: updatedDays,
+            budget: {
+                ...trip.budget,
+                actualSpending: newSpending
+            }
+        };
         const user = useAuthStore.getState().user;
 
         if (user) {
-            await updateTrip(trip.id, { days: updatedDays });
+            await updateTrip(trip.id, {
+                days: updatedDays,
+                budget: updatedTrip.budget
+            });
         } else {
             const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
             saveToLocalStorage(updatedTrips);
@@ -790,6 +805,25 @@ export const useTripStore = create<TripState>((set, get) => ({
         const user = useAuthStore.getState().user;
         if (user) {
             await updateTrip(trip.id, { days: updatedDays });
+        } else {
+            saveToLocalStorage(get().trips);
+        }
+    },
+
+    updateTripBudget: async (tripId, budget) => {
+        const trip = get().trips.find(t => t.id === tripId);
+        if (!trip) return;
+
+        const updatedTrip = { ...trip, budget, updatedAt: Timestamp.now() };
+
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+
+        const user = useAuthStore.getState().user;
+        if (user) {
+            await updateTrip(tripId, { budget });
         } else {
             saveToLocalStorage(get().trips);
         }

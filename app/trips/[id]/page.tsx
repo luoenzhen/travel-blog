@@ -9,8 +9,10 @@ import DayCard from '@/components/trips/DayCard';
 import AddActivityModal from '@/components/trips/AddActivityModal';
 import AddTransportModal from '@/components/trips/AddTransportModal';
 import AddAccommodationModal from '@/components/trips/AddAccommodationModal';
+import AccommodationCard from '@/components/trips/AccommodationCard';
 import CreateTripModal from '@/components/trips/CreateTripModal';
-import { Activity, TransportationDetails, AccommodationDetails, DayPlan } from '@/types';
+import BudgetModal from '@/components/trips/BudgetModal';
+import { Activity, TransportationDetails, AccommodationDetails, DayPlan, TripBudget } from '@/types';
 
 export default function TripDetailsPage() {
     const params = useParams();
@@ -24,6 +26,7 @@ export default function TripDetailsPage() {
     const [isTransportModalOpen, setIsTransportModalOpen] = useState(false);
     const [isAccommodationModalOpen, setIsAccommodationModalOpen] = useState(false);
     const [isEditTripModalOpen, setIsEditTripModalOpen] = useState(false);
+    const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
     const [activeDayId, setActiveDayId] = useState<string | null>(null);
     const [editingAccommodation, setEditingAccommodation] = useState<AccommodationDetails | undefined>(undefined);
     const [editingTransport, setEditingTransport] = useState<TransportationDetails | undefined>(undefined);
@@ -244,6 +247,11 @@ export default function TripDetailsPage() {
     const handleDeleteAccommodation = async (id: string) => {
         if (!activeTrip) return;
         await useTripStore.getState().removeAccommodation(activeTrip.id, id);
+    };
+
+    const handleSaveBudget = async (budget: TripBudget) => {
+        if (!activeTrip) return;
+        await useTripStore.getState().updateTripBudget(activeTrip.id, budget);
     };
 
     const getDayDateString = (dayId: string) => {
@@ -631,7 +639,10 @@ export default function TripDetailsPage() {
                                     <span className="font-medium">{processedDays?.filter(day => day.accommodation).length || 0}</span>
                                 </div>
                                 <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                                    <div className="flex justify-between items-center text-primary-600 font-medium cursor-pointer hover:text-primary-700">
+                                    <div
+                                        onClick={() => setIsBudgetModalOpen(true)}
+                                        className="flex justify-between items-center text-primary-600 font-medium cursor-pointer hover:text-primary-700 transition-colors py-2 px-2 -mx-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/10"
+                                    >
                                         <span>View Budget</span>
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -722,6 +733,15 @@ export default function TripDetailsPage() {
                     isOpen={isEditTripModalOpen}
                     onClose={() => setIsEditTripModalOpen(false)}
                     tripToEdit={activeTrip}
+                />
+            )}
+
+            {activeTrip && (
+                <BudgetModal
+                    isOpen={isBudgetModalOpen}
+                    onClose={() => setIsBudgetModalOpen(false)}
+                    trip={activeTrip}
+                    onSave={handleSaveBudget}
                 />
             )}
         </div>
