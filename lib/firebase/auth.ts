@@ -183,9 +183,9 @@ export const onAuthChange = (callback: (user: User | null) => void) => {
 
     return onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
-            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+            const userDoc = await getDoc(doc(db!, 'users', firebaseUser.uid));
             if (userDoc.exists()) {
-                callback({ id: firebaseUser.uid, ...userDoc.data() } as User);
+                callback({ id: firebaseUser.uid, ...(userDoc.data() as any) } as User);
             } else {
                 callback(null);
             }
