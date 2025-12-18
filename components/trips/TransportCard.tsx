@@ -92,31 +92,32 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                         )}
                     </div>
 
-                    <div className="flex items-center gap-8">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
                         {/* Departure */}
-                        <div className="flex-1">
-                            <div className="text-2xl font-black text-gray-900 dark:text-white mb-1">
+                        <div className="flex-1 w-full sm:w-auto">
+                            <div className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-0.5 sm:mb-1">
                                 {transport.departureAirportCode}
                             </div>
-                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-[120px]" title={transport.departureAirport}>
+                            <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-[150px] sm:max-w-none" title={transport.departureAirport}>
                                 {formatTime(transport.departureTime)} • {transport.departureAirport}
                             </div>
                         </div>
 
-                        {/* Arrow */}
-                        <div className="flex flex-col items-center flex-1">
-                            <div className="h-0.5 w-full bg-gray-200 dark:bg-gray-700 relative">
+                        {/* Arrow - Hide on very small screens if stacked, or adjust */}
+                        <div className="flex flex-row sm:flex-col items-center flex-1 w-full sm:w-auto gap-2 sm:gap-0">
+                            <div className="h-0.5 flex-1 sm:w-full bg-gray-200 dark:bg-gray-700 relative">
                                 <div className="absolute right-0 -top-1 w-2 h-2 border-t-2 border-r-2 border-gray-300 dark:border-gray-600 rotate-45"></div>
                             </div>
-                            <span className="text-[10px] text-gray-400 mt-1 capitalize">{transport.type}</span>
+                            <span className="text-[10px] text-gray-400 capitalize whitespace-nowrap">{transport.type}</span>
+                            <div className="h-0.5 flex-1 sm:hidden bg-gray-200 dark:bg-gray-700"></div>
                         </div>
 
                         {/* Arrival */}
-                        <div className="flex-1 text-right">
-                            <div className="text-2xl font-black text-gray-900 dark:text-white mb-1">
+                        <div className="flex-1 w-full sm:w-auto text-left sm:text-right">
+                            <div className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-0.5 sm:mb-1">
                                 {transport.arrivalAirportCode}
                             </div>
-                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-[120px]" title={transport.arrivalAirport}>
+                            <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-[150px] sm:max-w-none ml-auto" title={transport.arrivalAirport}>
                                 {formatTime(transport.arrivalTime)} • {transport.arrivalAirport}
                             </div>
                         </div>

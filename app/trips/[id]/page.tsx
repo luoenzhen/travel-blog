@@ -294,7 +294,7 @@ export default function TripDetailsPage() {
     const currencyCode = activeTrip.budget?.currency || 'CNY';
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 pb-20 lg:pb-0">
             {/* Header */}
             <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-sm/50 backdrop-blur-md bg-white/90 dark:bg-gray-800/90 supports-[backdrop-filter]:bg-white/60">
                 <div className="container mx-auto px-4 py-4">
@@ -469,13 +469,13 @@ export default function TripDetailsPage() {
             </div>
 
             {/* Main Content - Itinerary */}
-            <div className="container mx-auto px-4 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
+            <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+                <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
                     {/* Left: Day List */}
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
+                    <div className="flex-1 space-y-4 sm:space-y-6">
+                        <div className="flex items-center justify-between px-2 sm:px-0">
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
                                 {processedDays?.reduce((acc, day) => acc + (day.activities?.length || 0) + (day.transportation?.length || 0) + (day.accommodation ? 1 : 0), 0) || 0} Items
                             </span>
                         </div>
@@ -498,11 +498,11 @@ export default function TripDetailsPage() {
                         )}
                     </div>
 
-                    {/* Right: Sidebar */}
-                    <div className="hidden lg:block space-y-6 sticky top-24 h-fit">
+                    {/* Right: Sidebar - Now visible on mobile below content */}
+                    <div className="w-full lg:w-[350px] space-y-6 lg:sticky lg:top-24 h-fit">
 
                         {/* My Flights */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div id="sidebar-transportation" className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                     <svg className="w-5 h-5 text-blue-500 fill-current" viewBox="0 0 24 24">
@@ -573,7 +573,7 @@ export default function TripDetailsPage() {
                         </div>
 
                         {/* My Stays */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <div id="sidebar-stays" className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                     <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -641,6 +641,49 @@ export default function TripDetailsPage() {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Bottom Mobile Navigation */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 pb-safe">
+                <div className="flex justify-around items-center h-16 px-4">
+                    <button
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                        className="flex flex-col items-center gap-1 text-primary-600"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-[10px] font-bold">Itinerary</span>
+                    </button>
+                    <button
+                        onClick={() => document.getElementById('sidebar-transportation')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500"
+                    >
+                        <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+                        </svg>
+                        <span className="text-[10px] font-bold">Transfers</span>
+                    </button>
+                    <button
+                        onClick={() => document.getElementById('sidebar-stays')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        <span className="text-[10px] font-bold">Stays</span>
+                    </button>
+                    <button
+                        onClick={() => setIsEditTripModalOpen(true)}
+                        className="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-[10px] font-bold">Settings</span>
+                    </button>
                 </div>
             </div>
 

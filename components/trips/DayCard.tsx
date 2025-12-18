@@ -162,7 +162,7 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
 
     return (
         <div
-            className={`rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full ${customColor ? '' : 'bg-white dark:bg-gray-800'}`}
+            className={`rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full ${customColor ? '' : 'bg-white dark:bg-gray-800'}`}
             style={customColor ? { backgroundColor: customColor } : undefined}
         >
             <div className="flex justify-between items-start mb-6">
