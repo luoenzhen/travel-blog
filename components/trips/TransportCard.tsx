@@ -78,33 +78,33 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                 <div className="w-0.5 bg-gray-100 dark:bg-gray-700 flex-1 my-1 group-last:hidden"></div>
             </div>
 
-            <div className="flex-1 pb-4">
-                <div className={`bg-white dark:bg-gray-800 rounded-xl p-4 border border-${color}-100 dark:border-${color}-900/30 shadow-sm hover:shadow-md transition-all ${onClick ? 'cursor-pointer' : ''}`}>
-                    <div className="flex justify-between items-start mb-3">
+            <div className="flex-1 pb-2 sm:pb-4">
+                <div className={`bg-white dark:bg-gray-800 rounded-xl p-2.5 sm:p-4 border border-${color}-100 dark:border-${color}-900/30 shadow-sm hover:shadow-md transition-all ${onClick ? 'cursor-pointer' : ''}`}>
+                    <div className="flex justify-between items-start mb-1.5 sm:mb-3">
                         <div className="flex items-center gap-2">
-                            <span className="font-bold text-gray-900 dark:text-gray-100">{transport.airline}</span>
-                            <span className="text-gray-400 text-sm">{transport.flightNumber}</span>
+                            <span className="font-bold text-gray-900 dark:text-gray-100 uppercase text-xs sm:text-base">{transport.airline}</span>
+                            <span className="text-gray-400 text-[10px] sm:text-sm">{transport.flightNumber}</span>
                         </div>
                         {transport.bookingReference && (
-                            <span className="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-600 dark:text-gray-300">
+                            <span className="text-[10px] sm:text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-gray-600 dark:text-gray-300">
                                 REF: {transport.bookingReference}
                             </span>
                         )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 md:gap-8">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 md:gap-8">
                         {/* Departure */}
                         <div className="flex-1 min-w-0 w-full">
-                            <div className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-0.5 sm:mb-1">
+                            <div className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white mb-0 sm:mb-1">
                                 {transport.departureAirportCode}
                             </div>
-                            <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.departureAirport}>
+                            <div className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.departureAirport}>
                                 {formatTime(transport.departureTime)} • {transport.departureAirport}
                             </div>
                         </div>
 
                         {/* Arrow/Direction Line */}
-                        <div className="flex-shrink-0 w-full sm:w-48 md:w-64 lg:w-80 relative py-6 sm:py-0">
+                        <div className="flex-shrink-0 w-full sm:w-48 md:w-64 lg:w-80 relative py-4 sm:py-0">
                             <div className="w-full h-[1.5px] bg-gray-100 dark:bg-gray-800/50 relative flex items-center justify-center">
                                 {/* Animation Container - This contains the moving elements and handles clipping */}
                                 <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-full">
@@ -129,8 +129,8 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                                 <div className="absolute -right-1 -top-[4px] w-2.5 h-2.5 border-t-2 border-r-2 border-gray-400 dark:border-gray-500 rotate-45 z-20"></div>
 
                                 {/* Transport Type Badge - On top of everything */}
-                                <div className="absolute top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 px-6 py-2.5 sm:px-12 sm:py-4 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-xl z-30 hover:scale-110 transition-transform cursor-default min-w-[100px] sm:min-w-[180px]">
-                                    <span className="text-[14px] sm:text-[24px] font-black uppercase tracking-wider sm:tracking-[0.2em] leading-none text-center" style={{ color: `var(--${color === 'emerald' ? 'green' : color}-600)` }}>
+                                <div className="absolute top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 px-3 py-1 sm:px-12 sm:py-4 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center shadow-xl z-30 hover:scale-110 transition-transform cursor-default min-w-[70px] sm:min-w-[180px]">
+                                    <span className="text-[10px] sm:text-[24px] font-black uppercase tracking-wider sm:tracking-[0.2em] leading-none text-center" style={{ color: `var(--${color === 'emerald' ? 'green' : color}-600)` }}>
                                         {transport.type}
                                     </span>
                                 </div>
@@ -139,10 +139,10 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
 
                         {/* Arrival */}
                         <div className="flex-1 min-w-0 w-full text-left sm:text-right">
-                            <div className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-0.5 sm:mb-1">
+                            <div className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white mb-0 sm:mb-1">
                                 {transport.arrivalAirportCode}
                             </div>
-                            <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.arrivalAirport}>
+                            <div className="text-[10px] sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.arrivalAirport}>
                                 {formatTime(transport.arrivalTime)} • {transport.arrivalAirport}
                             </div>
                         </div>

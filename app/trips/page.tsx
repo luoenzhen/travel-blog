@@ -23,13 +23,13 @@ export default function TripsPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex justify-between items-center mb-8">
+            <div className="container mx-auto px-4 py-4 sm:py-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
                     <div>
-                        <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-white">My Trips</h1>
-                        <p className="text-gray-500 dark:text-gray-400">Plan and manage your adventures</p>
+                        <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 dark:text-white">My Trips</h1>
+                        <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400">Plan and manage adventures</p>
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
                         <input
                             type="file"
                             id="import-trip-file"
@@ -59,21 +59,21 @@ export default function TripsPage() {
                         />
                         <button
                             onClick={() => document.getElementById('import-trip-file')?.click()}
-                            className="px-6 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-semibold shadow-sm transition-all flex items-center gap-2 border border-gray-200 dark:border-gray-700"
+                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-semibold shadow-sm transition-all flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 text-sm sm:text-base"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                             </svg>
-                            Import Trip
+                            <span className="inline sm:inline">Import</span>
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold shadow-md transition-all flex items-center gap-2"
+                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold shadow-md transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            New Trip
+                            <span className="inline sm:inline">New Trip</span>
                         </button>
                     </div>
                 </div>

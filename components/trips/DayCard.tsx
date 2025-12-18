@@ -165,7 +165,7 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
             className={`rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full ${customColor ? '' : 'bg-white dark:bg-gray-800'}`}
             style={customColor ? { backgroundColor: customColor } : undefined}
         >
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-start mb-4 sm:mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                         Day {day.dayNumber}
@@ -187,7 +187,7 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
                 </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2 sm:space-y-4">
                 {timelineItems.length > 0 ? (
                     <DndContext
                         sensors={sensors}
@@ -217,9 +217,9 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
                                                 <div className="w-2 h-2 bg-primary-500 rounded-full mt-2"></div>
                                                 <div className="w-0.5 bg-gray-100 dark:bg-gray-700 flex-1 my-1 last:hidden"></div>
                                             </div>
-                                            <div className="flex-1 pb-4">
-                                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-600">
-                                                    <div className="flex justify-between items-start mb-1">
+                                            <div className="flex-1 pb-2 sm:pb-4">
+                                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2 sm:p-3 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-600">
+                                                    <div className="flex justify-between items-start mb-0.5 sm:mb-1">
                                                         <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
                                                             {item.name}
                                                         </span>
@@ -228,7 +228,7 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
                                                         </span>
                                                     </div>
                                                     {item.location && (
-                                                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
                                                             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
