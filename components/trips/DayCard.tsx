@@ -160,13 +160,29 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
     const effectiveAccommodation = day.accommodation || day.accommodationCheckout;
     const customColor = effectiveAccommodation?.color && effectiveAccommodation.color !== '#ffffff' ? effectiveAccommodation.color : undefined;
 
+    // Check if this day is "Today"
+    const today = new Date();
+    const isToday = today.getDate() === dateObj.getDate() &&
+        today.getMonth() === dateObj.getMonth() &&
+        today.getFullYear() === dateObj.getFullYear();
+
     return (
         <div
-            className={`rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full ${customColor ? '' : 'bg-white dark:bg-gray-800'}`}
-            style={customColor ? { backgroundColor: customColor } : undefined}
+            className={`rounded-2xl p-4 sm:p-6 shadow-sm border-2 h-full transition-all duration-300 ${isToday
+                ? 'border-amber-400 dark:border-amber-500 shadow-lg shadow-amber-500/10 scale-[1.01] bg-white dark:bg-gray-800'
+                : customColor
+                    ? 'border-transparent'
+                    : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800'
+                }`}
+            style={(!isToday && customColor) ? { backgroundColor: customColor } : undefined}
         >
             <div className="flex justify-between items-start mb-4 sm:mb-6">
-                <div>
+                <div className="relative">
+                    {isToday && (
+                        <div className="absolute -top-6 left-0 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/30 animate-pulse tracking-wider">
+                            TODAY
+                        </div>
+                    )}
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                         Day {day.dayNumber}
                     </h3>
