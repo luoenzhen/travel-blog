@@ -92,32 +92,36 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                         )}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 md:gap-8">
                         {/* Departure */}
-                        <div className="flex-1 w-full sm:w-auto">
+                        <div className="flex-1 min-w-0 w-full">
                             <div className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-0.5 sm:mb-1">
                                 {transport.departureAirportCode}
                             </div>
-                            <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-[150px] sm:max-w-none" title={transport.departureAirport}>
+                            <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.departureAirport}>
                                 {formatTime(transport.departureTime)} • {transport.departureAirport}
                             </div>
                         </div>
 
-                        {/* Arrow - Hide on very small screens if stacked, or adjust */}
-                        <div className="flex flex-row sm:flex-col items-center flex-1 w-full sm:w-auto gap-2 sm:gap-0">
-                            <div className="h-0.5 flex-1 sm:w-full bg-gray-200 dark:bg-gray-700 relative">
-                                <div className="absolute right-0 -top-1 w-2 h-2 border-t-2 border-r-2 border-gray-300 dark:border-gray-600 rotate-45"></div>
+                        {/* Arrow/Direction Line */}
+                        <div className="flex-shrink-0 w-full sm:w-24 md:w-32 lg:w-40 relative py-2 sm:py-0">
+                            <div className="w-full h-0.5 bg-gray-200 dark:bg-gray-700 relative flex items-center justify-center">
+                                {/* The Arrowhead at the far right, pointing to destination */}
+                                <div className="absolute -right-0.5 -top-[3.5px] w-2 h-2 border-t-2 border-r-2 border-gray-300 dark:border-gray-600 rotate-45"></div>
+
+                                {/* Transport Type Badge */}
+                                <div className="absolute bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full border border-gray-100 dark:border-gray-700 flex items-center gap-1.5 shadow-sm">
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{transport.type}</span>
+                                </div>
                             </div>
-                            <span className="text-[10px] text-gray-400 capitalize whitespace-nowrap">{transport.type}</span>
-                            <div className="h-0.5 flex-1 sm:hidden bg-gray-200 dark:bg-gray-700"></div>
                         </div>
 
                         {/* Arrival */}
-                        <div className="flex-1 w-full sm:w-auto text-left sm:text-right">
+                        <div className="flex-1 min-w-0 w-full text-left sm:text-right">
                             <div className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-0.5 sm:mb-1">
                                 {transport.arrivalAirportCode}
                             </div>
-                            <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-[150px] sm:max-w-none ml-auto" title={transport.arrivalAirport}>
+                            <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.arrivalAirport}>
                                 {formatTime(transport.arrivalTime)} • {transport.arrivalAirport}
                             </div>
                         </div>
