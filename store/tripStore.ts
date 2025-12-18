@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Trip, DayPlan, Activity, FlightDetails, AccommodationDetails } from '@/types';
+import { Trip, DayPlan, Activity, TransportationDetails, AccommodationDetails } from '@/types';
 import { createTrip, getUserTrips, deleteTrip, updateTrip } from '@/lib/firebase/trips';
 import { useAuthStore } from './authStore';
 import { Timestamp } from 'firebase/firestore';
@@ -19,15 +19,16 @@ interface TripState {
     setActiveTrip: (tripId: string) => void;
     initializeDays: (tripId: string) => Promise<void>;
     addActivity: (tripId: string, dayId: string, activity: Activity) => Promise<void>;
-    addFlight: (tripId: string, flight: FlightDetails) => Promise<void>;
-    updateFlight: (tripId: string, flight: FlightDetails) => Promise<void>;
-    removeFlight: (tripId: string, flightId: string) => Promise<void>;
+    addTransportation: (tripId: string, transport: TransportationDetails) => Promise<void>;
+    updateTransportation: (tripId: string, transport: TransportationDetails) => Promise<void>;
+    removeTransportation: (tripId: string, transportId: string) => Promise<void>;
     addAccommodation: (tripId: string, accommodation: AccommodationDetails) => Promise<void>;
     updateAccommodation: (tripId: string, accommodation: AccommodationDetails) => Promise<void>;
     removeAccommodation: (tripId: string, accommodationId: string) => Promise<void>;
     toggleTripLock: (tripId: string) => Promise<void>;
     updateTripDetails: (tripId: string, updates: Partial<Trip>) => Promise<void>;
     importTrip: (tripData: any) => Promise<void>;
+    updateDayOrder: (tripId: string, dayId: string, newOrder: string[]) => Promise<void>;
     reset: () => void;
 }
 
@@ -46,14 +47,12 @@ const saveToLocalStorage = (trips: Trip[]) => {
         days: t.days.map(d => ({
             ...d,
             date: d.date.toDate().toISOString(),
-            flights: d.flights.map(f => ({
+            transportation: (d.transportation || []).map(f => ({
                 ...f,
                 departureTime: f.departureTime.toDate().toISOString(),
                 arrivalTime: f.arrivalTime.toDate().toISOString(),
             })),
-            // Accommodations don't use Timestamps in the interface currently (just strings checkInTime), 
-            // but if we used dates we'd need to serialize.
-            // AccommodationDetails has 'checkInTime' as string.
+            customOrder: d.customOrder || []
         }))
     }));
 
@@ -87,7 +86,7 @@ export const useTripStore = create<TripState>((set, get) => ({
                             days: (trip.days || []).map((d: any) => ({
                                 ...d,
                                 date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
-                                flights: (d.flights || []).map((f: any) => ({
+                                transportation: (d.transportation || d.flights || []).map((f: any) => ({
                                     ...f,
                                     departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
                                     arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
@@ -223,7 +222,7 @@ export const useTripStore = create<TripState>((set, get) => ({
                 tripId: trip.id,
                 date: Timestamp.fromDate(date),
                 dayNumber: i + 1,
-                flights: [],
+                transportation: [],
                 activities: [],
                 dining: [],
                 dailyBudget: 0,
@@ -279,20 +278,24 @@ export const useTripStore = create<TripState>((set, get) => ({
         }));
     },
 
-    addFlight: async (tripId, flight) => {
+    addTransportation: async (tripId, transport) => {
         const trip = get().trips.find(t => t.id === tripId);
         if (!trip) return;
 
-        // 1. Add to central "flights" list
-        const updatedFlights = [...(trip.flights || []), flight];
+        // 1. Add to central "transportation" list
+        const updatedTransportation = [...(trip.transportation || []), transport];
 
         // 2. Update Budget
         const newSpending = { ...trip.budget.actualSpending };
-        newSpending.flights = (newSpending.flights || 0) + (flight.cost || 0);
+        if (transport.type === 'flight') {
+            newSpending.flights = (newSpending.flights || 0) + (transport.cost || 0);
+        } else {
+            newSpending.transportation = (newSpending.transportation || 0) + (transport.cost || 0);
+        }
 
         const updatedTrip = {
             ...trip,
-            flights: updatedFlights,
+            transportation: updatedTransportation,
             budget: {
                 ...trip.budget,
                 actualSpending: newSpending
@@ -300,41 +303,46 @@ export const useTripStore = create<TripState>((set, get) => ({
             updatedAt: Timestamp.now()
         };
 
+        // Update state immediately (optimistic)
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+
         const user = useAuthStore.getState().user;
         if (user) {
             await updateTrip(trip.id, {
-                flights: updatedFlights,
+                transportation: updatedTransportation,
                 budget: updatedTrip.budget
             });
         } else {
             const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
             saveToLocalStorage(updatedTrips);
         }
-
-        set(state => ({
-            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
-            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
-        }));
     },
 
-    updateFlight: async (tripId, flight) => {
+    updateTransportation: async (tripId, transport) => {
         const trip = get().trips.find(t => t.id === tripId);
         if (!trip) return;
 
-        // 1. Update central "flights" list
-        const updatedFlights = (trip.flights || []).map(f => f.id === flight.id ? flight : f);
+        // 1. Update central "transportation" list
+        const updatedTransportation = (trip.transportation || []).map(f => f.id === transport.id ? transport : f);
 
         // Calculate Cost Difference
-        const oldFlight = (trip.flights || []).find(f => f.id === flight.id);
-        const costDiff = (flight.cost || 0) - (oldFlight?.cost || 0);
+        const oldTransport = (trip.transportation || []).find(f => f.id === transport.id);
+        const costDiff = (transport.cost || 0) - (oldTransport?.cost || 0);
 
         // 2. Update Budget
         const newSpending = { ...trip.budget.actualSpending };
-        newSpending.flights = (newSpending.flights || 0) + costDiff;
+        if (transport.type === 'flight') {
+            newSpending.flights = (newSpending.flights || 0) + costDiff;
+        } else {
+            newSpending.transportation = (newSpending.transportation || 0) + costDiff;
+        }
 
         const updatedTrip = {
             ...trip,
-            flights: updatedFlights,
+            transportation: updatedTransportation,
             budget: {
                 ...trip.budget,
                 actualSpending: newSpending
@@ -342,41 +350,46 @@ export const useTripStore = create<TripState>((set, get) => ({
             updatedAt: Timestamp.now()
         };
 
+        // Update state immediately (optimistic)
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+
         const user = useAuthStore.getState().user;
         if (user) {
             await updateTrip(trip.id, {
-                flights: updatedFlights,
+                transportation: updatedTransportation,
                 budget: updatedTrip.budget
             });
         } else {
             const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
             saveToLocalStorage(updatedTrips);
         }
-
-        set(state => ({
-            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
-            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
-        }));
     },
 
-    removeFlight: async (tripId, flightId) => {
+    removeTransportation: async (tripId, transportId) => {
         const trip = get().trips.find(t => t.id === tripId);
         if (!trip) return;
 
         // 1. Update list
-        const updatedFlights = (trip.flights || []).filter(f => f.id !== flightId);
+        const updatedTransportation = (trip.transportation || []).filter(f => f.id !== transportId);
 
         // Cost removal
-        const flightToRemove = (trip.flights || []).find(f => f.id === flightId);
-        const costToRemove = flightToRemove?.cost || 0;
+        const transportToRemove = (trip.transportation || []).find(f => f.id === transportId);
+        const costToRemove = transportToRemove?.cost || 0;
 
         // 2. Update Budget
         const newSpending = { ...trip.budget.actualSpending };
-        newSpending.flights = Math.max(0, (newSpending.flights || 0) - costToRemove);
+        if (transportToRemove?.type === 'flight') {
+            newSpending.flights = Math.max(0, (newSpending.flights || 0) - costToRemove);
+        } else {
+            newSpending.transportation = Math.max(0, (newSpending.transportation || 0) - costToRemove);
+        }
 
         const updatedTrip = {
             ...trip,
-            flights: updatedFlights,
+            transportation: updatedTransportation,
             budget: {
                 ...trip.budget,
                 actualSpending: newSpending
@@ -384,21 +397,22 @@ export const useTripStore = create<TripState>((set, get) => ({
             updatedAt: Timestamp.now()
         };
 
+        // Update state immediately (optimistic)
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+
         const user = useAuthStore.getState().user;
         if (user) {
             await updateTrip(trip.id, {
-                flights: updatedFlights,
+                transportation: updatedTransportation,
                 budget: updatedTrip.budget
             });
         } else {
             const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
             saveToLocalStorage(updatedTrips);
         }
-
-        set(state => ({
-            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
-            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
-        }));
     },
 
     addAccommodation: async (tripId, accommodation) => {
@@ -720,7 +734,7 @@ export const useTripStore = create<TripState>((set, get) => ({
                     id: crypto.randomUUID(),
                     tripId: newTripId,
                     date: toTimestamp(day.date),
-                    flights: (day.flights || []).map((f: any) => ({ ...f, id: crypto.randomUUID(), departureTime: toTimestamp(f.departureTime), arrivalTime: toTimestamp(f.arrivalTime) })),
+                    transportation: (day.transportation || day.flights || []).map((f: any) => ({ ...f, id: crypto.randomUUID(), departureTime: toTimestamp(f.departureTime), arrivalTime: toTimestamp(f.arrivalTime) })),
                     activities: (day.activities || []).map((a: any) => ({ ...a, id: crypto.randomUUID() })),
                     accommodation: day.accommodation ? { ...day.accommodation, id: crypto.randomUUID() } : undefined
                 }))
@@ -742,6 +756,34 @@ export const useTripStore = create<TripState>((set, get) => ({
         } catch (error: any) {
             console.error('Import failed', error);
             set({ error: 'Failed to import trip: ' + error.message, loading: false });
+        }
+    },
+
+    updateDayOrder: async (tripId, dayId, newOrder) => {
+        const trip = get().trips.find(t => t.id === tripId);
+        if (!trip) return;
+
+        const updatedDays = (trip.days || []).map(day =>
+            day.id === dayId ? { ...day, customOrder: newOrder } : day
+        );
+
+        const updatedTrip = {
+            ...trip,
+            days: updatedDays,
+            updatedAt: Timestamp.now()
+        };
+
+        // Update state immediately (optimistic)
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+
+        const user = useAuthStore.getState().user;
+        if (user) {
+            await updateTrip(trip.id, { days: updatedDays });
+        } else {
+            saveToLocalStorage(get().trips);
         }
     },
 

@@ -150,7 +150,7 @@ export interface Trip {
 
     // Stays (Centralized accommodation management)
     stays?: AccommodationDetails[];
-    flights?: FlightDetails[];
+    transportation?: TransportationDetails[];
 
     // Collaboration
     collaborators: string[]; // User IDs
@@ -173,7 +173,7 @@ export interface DayPlan {
     dayNumber: number; // Day 1, Day 2, etc.
 
     // Flights
-    flights: FlightDetails[];
+    transportation: TransportationDetails[];
 
     // Accommodation
     accommodation?: AccommodationDetails;
@@ -181,6 +181,9 @@ export interface DayPlan {
 
     // Activities
     activities: Activity[];
+
+    // Manual Reordering
+    customOrder?: string[];
 
     // Dining
     dining: DiningPlan[];
@@ -199,19 +202,22 @@ export interface DayPlan {
     isCompleted: boolean;
 }
 
-// Flight Details
-export interface FlightDetails {
-    id: string;
+// Transportation Details
+export type TransportType = 'flight' | 'train' | 'bus' | 'other';
 
-    // Flight info
-    airline: string;
-    flightNumber: string;
+export interface TransportationDetails {
+    id: string;
+    type: TransportType;
+
+    // Carrier info
+    airline: string; // Used for airline name, train company, bus company
+    flightNumber: string; // Used for flight no, train no, bus no
 
     // Departure
-    departureAirport: string;
-    departureAirportCode: string;
+    departureAirport: string; // Used for airport/station name
+    departureAirportCode: string; // Used for airport/station code
     departureTime: Timestamp;
-    departureTerminal?: string;
+    departureTerminal?: string; // Terminal or Platform
 
     // Arrival
     arrivalAirport: string;

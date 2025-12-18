@@ -7,26 +7,26 @@ import { format, differenceInDays, addDays } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import DayCard from '@/components/trips/DayCard';
 import AddActivityModal from '@/components/trips/AddActivityModal';
-import AddFlightModal from '@/components/trips/AddFlightModal';
+import AddTransportModal from '@/components/trips/AddTransportModal';
 import AddAccommodationModal from '@/components/trips/AddAccommodationModal';
 import CreateTripModal from '@/components/trips/CreateTripModal';
-import { Activity, FlightDetails, AccommodationDetails, DayPlan } from '@/types';
+import { Activity, TransportationDetails, AccommodationDetails, DayPlan } from '@/types';
 
 export default function TripDetailsPage() {
     const params = useParams();
     const router = useRouter();
-    const { getTrip, activeTrip, initializeDays, addActivity, addFlight, addAccommodation, loading, updateTripDetails } = useTripStore();
+    const { getTrip, activeTrip, initializeDays, addActivity, addTransportation, addAccommodation, loading, updateTripDetails } = useTripStore();
     const [isInitializing, setIsInitializing] = useState(true);
     const [searchFailed, setSearchFailed] = useState(false);
 
     // ... (modal states remain the same) ...
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
-    const [isFlightModalOpen, setIsFlightModalOpen] = useState(false);
+    const [isTransportModalOpen, setIsTransportModalOpen] = useState(false);
     const [isAccommodationModalOpen, setIsAccommodationModalOpen] = useState(false);
     const [isEditTripModalOpen, setIsEditTripModalOpen] = useState(false);
     const [activeDayId, setActiveDayId] = useState<string | null>(null);
     const [editingAccommodation, setEditingAccommodation] = useState<AccommodationDetails | undefined>(undefined);
-    const [editingFlight, setEditingFlight] = useState<FlightDetails | undefined>(undefined);
+    const [editingTransport, setEditingTransport] = useState<TransportationDetails | undefined>(undefined);
 
     const tripId = params.id as string;
 
@@ -59,27 +59,23 @@ export default function TripDetailsPage() {
             newDay.accommodation = undefined;
             newDay.accommodationCheckout = undefined;
 
-            // Sync Flights (Project global flights onto day if they match date)
-            if (activeTrip.flights && activeTrip.flights.length > 0) {
+            // Sync Transportation (Project global transportation onto day if they match date)
+            if (activeTrip.transportation && activeTrip.transportation.length > 0) {
                 const dayDateStr = format(dayDate, 'yyyy-MM-dd');
-                newDay.flights = activeTrip.flights.filter(f => {
-                    // departureTime is timestamp, but safe handle if it's a string/Date
+                newDay.transportation = activeTrip.transportation.filter(f => {
+                    // departureTime is timestamp
                     let fDate: Date;
                     // @ts-ignore
                     if (f.departureTime?.seconds !== undefined) {
-                        // Handle serialized Timestamp
                         // @ts-ignore
                         fDate = new Date(f.departureTime.seconds * 1000);
                     } else if (f.departureTime && typeof f.departureTime.toDate === 'function') {
                         fDate = f.departureTime.toDate();
                     } else {
-                        // Fallback for Date or String
                         fDate = new Date(f.departureTime as any);
                     }
 
-                    // Validate date
                     if (isNaN(fDate.getTime())) return false;
-
                     return format(fDate, 'yyyy-MM-dd') === dayDateStr;
                 });
             }
@@ -153,7 +149,7 @@ export default function TripDetailsPage() {
                         tripId: activeTrip.id,
                         date: Timestamp.fromDate(date),
                         dayNumber: i + 1,
-                        flights: [],
+                        transportation: [],
                         activities: [],
                         dining: [],
                         dailyBudget: 0,
@@ -173,17 +169,14 @@ export default function TripDetailsPage() {
         setIsActivityModalOpen(true);
     };
 
-    const handleAddFlightClick = (dayId: string) => {
-        // Legacy: we might still get dayId if clicked from DayCard, but we should default to global
-        // Alternatively we can pre-fill the date from dayId if provided.
-        // For now, let's treat it as global add, maybe using dayId to pre-fill date if we wanted.
-        setEditingFlight(undefined);
-        setIsFlightModalOpen(true);
+    const handleAddTransportClick = (dayId: string) => {
+        setEditingTransport(undefined);
+        setIsTransportModalOpen(true);
     };
 
-    const handleEditFlightClick = (flight: FlightDetails) => {
-        setEditingFlight(flight);
-        setIsFlightModalOpen(true);
+    const handleEditTransportClick = (transport: TransportationDetails) => {
+        setEditingTransport(transport);
+        setIsTransportModalOpen(true);
     };
 
     const handleAddAccommodationClick = () => {
@@ -208,24 +201,24 @@ export default function TripDetailsPage() {
         await addActivity(activeTrip.id, activeDayId, newActivity);
     };
 
-    const handleSaveFlight = async (flightData: Partial<FlightDetails>) => {
+    const handleSaveTransport = async (transportData: Partial<TransportationDetails>) => {
         if (!activeTrip) return;
 
-        if (editingFlight) {
-            const updatedFlight = { ...editingFlight, ...flightData } as FlightDetails;
-            await useTripStore.getState().updateFlight(activeTrip.id, updatedFlight);
+        if (editingTransport) {
+            const updatedTransport = { ...editingTransport, ...transportData } as TransportationDetails;
+            await useTripStore.getState().updateTransportation(activeTrip.id, updatedTransport);
         } else {
-            const newFlight = {
+            const newTransport = {
                 id: crypto.randomUUID(),
-                ...flightData
-            } as FlightDetails;
-            await useTripStore.getState().addFlight(activeTrip.id, newFlight);
+                ...transportData
+            } as TransportationDetails;
+            await useTripStore.getState().addTransportation(activeTrip.id, newTransport);
         }
     };
 
-    const handleDeleteFlight = async (id: string) => {
+    const handleDeleteTransport = async (id: string) => {
         if (!activeTrip) return;
-        await useTripStore.getState().removeFlight(activeTrip.id, id);
+        await useTripStore.getState().removeTransportation(activeTrip.id, id);
     };
 
     const handleSaveAccommodation = async (accommodationData: Partial<AccommodationDetails>) => {
@@ -483,7 +476,7 @@ export default function TripDetailsPage() {
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
                             <span className="text-sm text-gray-500">
-                                {processedDays?.reduce((acc, day) => acc + (day.activities?.length || 0) + (day.flights?.length || 0) + (day.accommodation ? 1 : 0), 0) || 0} Items
+                                {processedDays?.reduce((acc, day) => acc + (day.activities?.length || 0) + (day.transportation?.length || 0) + (day.accommodation ? 1 : 0), 0) || 0} Items
                             </span>
                         </div>
 
@@ -494,6 +487,7 @@ export default function TripDetailsPage() {
                                         key={day.id}
                                         day={day}
                                         onAddActivity={() => handleAddActivityClick(day.id)}
+                                        onEditTransport={handleEditTransportClick}
                                     />
                                 ))}
                             </div>
@@ -512,44 +506,43 @@ export default function TripDetailsPage() {
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                     <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m-8 4h8m-9 8h10M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z" />
                                     </svg>
-                                    My Flights
+                                    Transportation
                                 </h3>
                                 <button
-                                    onClick={() => handleAddFlightClick('')} // Global add
+                                    onClick={() => handleAddTransportClick('')}
                                     className="text-primary-600 hover:text-primary-700 text-sm font-semibold"
                                 >
-                                    + Add Flight
+                                    + Add
                                 </button>
                             </div>
 
-                            {activeTrip.flights && activeTrip.flights.length > 0 ? (
+                            {activeTrip.transportation && activeTrip.transportation.length > 0 ? (
                                 <div className="space-y-3">
-                                    {activeTrip.flights.map((flight) => (
+                                    {activeTrip.transportation.map((transport) => (
                                         <div
-                                            key={flight.id}
-                                            onClick={() => handleEditFlightClick(flight)}
+                                            key={transport.id}
+                                            onClick={() => handleEditTransportClick(transport)}
                                             className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                         >
                                             <div className="flex justify-between items-start">
-                                                <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{flight.airline} {flight.flightNumber}</div>
-                                                <div className="text-xs font-mono text-gray-400">{flight.departureAirportCode} → {flight.arrivalAirportCode}</div>
+                                                <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{transport.airline} {transport.flightNumber}</div>
+                                                <div className="text-xs font-mono text-gray-400">{transport.departureAirportCode} → {transport.arrivalAirportCode}</div>
                                             </div>
                                             <div className="text-xs text-gray-500 space-y-0.5 mt-1">
-                                                <div>
-                                                    {(() => {
-                                                        const t = flight.departureTime as any;
-                                                        let date: Date;
-                                                        if (t?.seconds !== undefined) {
-                                                            date = new Date(t.seconds * 1000);
-                                                        } else if (t && typeof t.toDate === 'function') {
-                                                            date = t.toDate();
-                                                        } else {
-                                                            date = new Date(t);
-                                                        }
-                                                        return isNaN(date.getTime()) ? 'Invalid Date' : format(date, 'MMM d, HH:mm');
-                                                    })()}
+                                                <div className="capitalize">{transport.type} • {(() => {
+                                                    const t = transport.departureTime as any;
+                                                    let date: Date;
+                                                    if (t?.seconds !== undefined) {
+                                                        date = new Date(t.seconds * 1000);
+                                                    } else if (t && typeof t.toDate === 'function') {
+                                                        date = t.toDate();
+                                                    } else {
+                                                        date = new Date(t);
+                                                    }
+                                                    return isNaN(date.getTime()) ? 'Invalid Date' : format(date, 'MMM d, HH:mm');
+                                                })()}
                                                 </div>
                                             </div>
                                         </div>
@@ -613,8 +606,8 @@ export default function TripDetailsPage() {
                                     <span className="font-medium">{activeTrip.days?.reduce((acc, day) => acc + (day.activities?.length || 0), 0)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Flights</span>
-                                    <span className="font-medium">{activeTrip.days?.reduce((acc, day) => acc + (day.flights?.length || 0), 0)}</span>
+                                    <span className="text-gray-500">Transportation</span>
+                                    <span className="font-medium">{activeTrip.transportation?.length || 0}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">Accommodations</span>
@@ -642,15 +635,15 @@ export default function TripDetailsPage() {
                 currencyCode={currencyCode}
             />
 
-            <AddFlightModal
-                isOpen={isFlightModalOpen}
-                onClose={() => setIsFlightModalOpen(false)}
-                onSave={handleSaveFlight}
-                onDelete={handleDeleteFlight}
+            <AddTransportModal
+                isOpen={isTransportModalOpen}
+                onClose={() => setIsTransportModalOpen(false)}
+                onSave={handleSaveTransport}
+                onDelete={handleDeleteTransport}
                 dayDate="Trip Duration" // Global context
                 dayDateIso={startDate.toISOString().split('T')[0]}
                 currencyCode={currencyCode}
-                initialData={editingFlight}
+                initialData={editingTransport}
             />
 
             <AddAccommodationModal
