@@ -330,7 +330,7 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                             </div>
                                             <div className="flex-1 pb-2 sm:pb-4">
                                                 <div className={`rounded-xl p-2 sm:p-3 transition-all border ${item.isLocked
-                                                    ? 'bg-gray-50/50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800'
+                                                    ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
                                                     : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md border-transparent hover:border-gray-100 dark:hover:border-gray-600 cursor-pointer'
                                                     }`}
                                                     onClick={() => !item.isLocked && onEditActivity(item as Activity)}

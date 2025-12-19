@@ -882,7 +882,7 @@ export const useTripStore = create<TripState>((set, get) => ({
             const importedTrip: Trip = {
                 ...tripData,
                 id: newTripId,
-                title: `${tripData.title || 'Imported Trip'} (Imported)`,
+                title: `${tripData.title || 'Imported Trip'}`,
                 userId: user ? user.id : 'guest',
                 startDate: toTimestamp(tripData.startDate),
                 endDate: toTimestamp(tripData.endDate),
