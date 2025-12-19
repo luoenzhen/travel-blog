@@ -41,6 +41,8 @@ export const viewport: Viewport = {
     viewportFit: 'cover',
 };
 
+import PWAProvider from "@/components/PWAProvider";
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -53,7 +55,9 @@ export default function RootLayout({
                 <link rel="apple-touch-icon" href="/icon-192x192.png" />
             </head>
             <body className={`${inter.className} antialiased min-h-screen`} suppressHydrationWarning>
-                {children}
+                <PWAProvider>
+                    {children}
+                </PWAProvider>
             </body>
         </html>
     );

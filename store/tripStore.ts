@@ -30,6 +30,8 @@ interface TripState {
     updateTripBudget: (tripId: string, budget: TripBudget) => Promise<void>;
     importTrip: (tripData: any) => Promise<void>;
     updateDayOrder: (tripId: string, dayId: string, newOrder: string[]) => Promise<void>;
+    addPhoto: (tripId: string, dayId: string, photo: any) => Promise<void>;
+    removePhoto: (tripId: string, dayId: string, photoId: string) => Promise<void>;
     reset: () => void;
 }
 
@@ -824,6 +826,72 @@ export const useTripStore = create<TripState>((set, get) => ({
         const user = useAuthStore.getState().user;
         if (user) {
             await updateTrip(tripId, { budget });
+        } else {
+            saveToLocalStorage(get().trips);
+        }
+    },
+
+    addPhoto: async (tripId, dayId, photo) => {
+        const trip = get().trips.find(t => t.id === tripId);
+        if (!trip) return;
+
+        const updatedDays = (trip.days || []).map(day => {
+            if (day.id === dayId) {
+                return {
+                    ...day,
+                    photos: [...(day.photos || []), photo]
+                };
+            }
+            return day;
+        });
+
+        const updatedTrip = {
+            ...trip,
+            days: updatedDays,
+            updatedAt: Timestamp.now()
+        };
+
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+
+        const user = useAuthStore.getState().user;
+        if (user) {
+            await updateTrip(tripId, { days: updatedDays });
+        } else {
+            saveToLocalStorage(get().trips);
+        }
+    },
+
+    removePhoto: async (tripId, dayId, photoId) => {
+        const trip = get().trips.find(t => t.id === tripId);
+        if (!trip) return;
+
+        const updatedDays = (trip.days || []).map(day => {
+            if (day.id === dayId) {
+                return {
+                    ...day,
+                    photos: (day.photos || []).filter(p => p.id !== photoId)
+                };
+            }
+            return day;
+        });
+
+        const updatedTrip = {
+            ...trip,
+            days: updatedDays,
+            updatedAt: Timestamp.now()
+        };
+
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+
+        const user = useAuthStore.getState().user;
+        if (user) {
+            await updateTrip(tripId, { days: updatedDays });
         } else {
             saveToLocalStorage(get().trips);
         }

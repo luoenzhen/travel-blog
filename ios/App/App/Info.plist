@@ -3,7 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CAPACITOR_DEBUG</key>
-	<string>$(CAPACITOR_DEBUG)</string>
+    <string>$(CAPACITOR_DEBUG)</string>
+    <key>NSCameraUsageDescription</key>
+    <string>To take photos for your travel blog</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>To select photos for your travel blog</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>To save photos to your library</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
