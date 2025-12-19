@@ -187,7 +187,8 @@ export default function DayCard({ day, onAddActivity, onAddPhoto, onRemovePhoto 
 
     return (
         <div
-            className={`rounded-2xl p-4 sm:p-6 shadow-sm border-2 h-full transition-all duration-300 ${isToday
+            id={`day-${day.id}`}
+            className={`rounded-2xl p-4 sm:p-6 shadow-sm border-2 h-full transition-all duration-300 scroll-mt-20 sm:scroll-mt-32 ${isToday
                 ? 'border-amber-400 dark:border-amber-500 shadow-lg shadow-amber-500/10 scale-[1.01] bg-white dark:bg-gray-800'
                 : customColor
                     ? 'border-transparent'

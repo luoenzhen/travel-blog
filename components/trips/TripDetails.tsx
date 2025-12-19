@@ -21,6 +21,7 @@ export default function TripDetailsPage() {
     const { getTrip, activeTrip, initializeDays, addActivity, addAccommodation, loading, updateTripDetails } = useTripStore();
     const [isInitializing, setIsInitializing] = useState(true);
     const [searchFailed, setSearchFailed] = useState(false);
+    const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
     // ... (modal states remain the same) ...
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -51,60 +52,72 @@ export default function TripDetailsPage() {
             return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])).getTime();
         };
 
-        return activeTrip.days.map(day => {
-            // Clone day to avoid mutating generic state
-            const newDay = { ...day };
+        return [...activeTrip.days]
+            .sort((a, b) => {
+                const dateA = a.date instanceof Timestamp ? a.date.toDate().getTime() : new Date(a.date).getTime();
+                const dateB = b.date instanceof Timestamp ? b.date.toDate().getTime() : new Date(b.date).getTime();
+                return dateA - dateB;
+            })
+            .map(day => {
+                // Clone day to avoid mutating generic state
+                const newDay = { ...day };
 
-            // Get current day timestamp (normalized)
-            const dayDate = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
-            dayDate.setHours(0, 0, 0, 0);
-            const dayTime = dayDate.getTime();
+                // Get current day timestamp (normalized)
+                const dayDate = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
+                dayDate.setHours(0, 0, 0, 0);
+                const dayTime = dayDate.getTime();
 
-            // Reset accommodation fields (we re-calculate them from source of truth)
-            newDay.accommodation = undefined;
-            newDay.accommodationCheckout = undefined;
+                // Reset accommodation fields (we re-calculate them from source of truth)
+                newDay.accommodation = undefined;
+                newDay.accommodationCheckout = undefined;
 
-            // Sync Transportation (Project global transportation onto day if they match date)
-            if (activeTrip.transportation && activeTrip.transportation.length > 0) {
-                const dayDateStr = format(dayDate, 'yyyy-MM-dd');
-                newDay.transportation = activeTrip.transportation.filter(f => {
-                    // departureTime is timestamp
-                    let fDate: Date;
-                    const depTime = f.departureTime as unknown as { seconds?: number; toDate?: () => Date };
-                    if (depTime?.seconds !== undefined) {
-                        fDate = new Date(depTime.seconds * 1000);
-                    } else if (typeof depTime?.toDate === 'function') {
-                        fDate = depTime.toDate();
-                    } else {
-                        fDate = new Date(f.departureTime as unknown as string | number | Date);
-                    }
+                // Sync Transportation (Project global transportation onto day if they match date)
+                if (activeTrip.transportation && activeTrip.transportation.length > 0) {
+                    const dayDateStr = format(dayDate, 'yyyy-MM-dd');
+                    newDay.transportation = activeTrip.transportation.filter(f => {
+                        // departureTime is timestamp
+                        let fDate: Date;
+                        const depTime = f.departureTime as unknown as { seconds?: number; toDate?: () => Date };
+                        if (depTime?.seconds !== undefined) {
+                            fDate = new Date(depTime.seconds * 1000);
+                        } else if (typeof depTime?.toDate === 'function') {
+                            fDate = depTime.toDate();
+                        } else {
+                            fDate = new Date(f.departureTime as unknown as string | number | Date);
+                        }
 
-                    if (isNaN(fDate.getTime())) return false;
-                    return format(fDate, 'yyyy-MM-dd') === dayDateStr;
-                });
-            }
-
-            // Find matching stays for this day
-            activeTrip.stays?.forEach(stay => {
-                const checkInTime = parseYMD(stay.checkInDate || '');
-                const checkOutTime = parseYMD(stay.checkOutDate || '');
-
-                if (checkInTime && checkOutTime) {
-                    // 1. Staying (Inclusive Check-in, Exclusive Check-out)
-                    if (dayTime >= checkInTime && dayTime < checkOutTime) {
-                        newDay.accommodation = stay;
-                    }
-
-                    // 2. Checkout Day (Exact match)
-                    if (dayTime === checkOutTime) {
-                        newDay.accommodationCheckout = stay;
-                    }
+                        if (isNaN(fDate.getTime())) return false;
+                        return format(fDate, 'yyyy-MM-dd') === dayDateStr;
+                    });
                 }
-            });
 
-            return newDay;
-        });
+                // Find matching stays for this day
+                activeTrip.stays?.forEach(stay => {
+                    const checkInTime = parseYMD(stay.checkInDate || '');
+                    const checkOutTime = parseYMD(stay.checkOutDate || '');
+
+                    if (checkInTime && checkOutTime) {
+                        // 1. Staying (Inclusive Check-in, Exclusive Check-out)
+                        if (dayTime >= checkInTime && dayTime < checkOutTime) {
+                            newDay.accommodation = stay;
+                        }
+
+                        // 2. Checkout Day (Exact match)
+                        if (dayTime === checkOutTime) {
+                            newDay.accommodationCheckout = stay;
+                        }
+                    }
+                });
+
+                return newDay;
+            });
     }, [activeTrip]);
+
+    useEffect(() => {
+        if (tripId) {
+            setHasInitialScrolled(false);
+        }
+    }, [tripId]);
 
     // Load Trip
     useEffect(() => {
@@ -140,18 +153,36 @@ export default function TripDetailsPage() {
             const end = activeTrip.endDate instanceof Timestamp ? activeTrip.endDate.toDate() : new Date(activeTrip.endDate);
             end.setHours(0, 0, 0, 0);
 
-            // Inclusive day count
             const expectedCount = differenceInDays(end, start) + 1;
+            const existingDays = [...activeTrip.days];
+            const newDays: DayPlan[] = [];
 
-            if (activeTrip.days.length < expectedCount) {
-                console.log(`Reparing trip days. Expected ${expectedCount}, found ${activeTrip.days.length}`);
-                const newDays = [...activeTrip.days];
-                for (let i = activeTrip.days.length; i < expectedCount; i++) {
-                    const date = addDays(start, i);
+            let hasChanges = false;
+
+            for (let i = 0; i < expectedCount; i++) {
+                const targetDate = addDays(start, i);
+                const targetDateStr = format(targetDate, 'yyyy-MM-dd');
+
+                // Find if we already have this day
+                const existingDay = existingDays.find(d => {
+                    const dDate = d.date instanceof Timestamp ? d.date.toDate() : new Date(d.date);
+                    return format(dDate, 'yyyy-MM-dd') === targetDateStr;
+                });
+
+                if (existingDay) {
+                    // Update dayNumber if it changed
+                    if (existingDay.dayNumber !== i + 1) {
+                        newDays.push({ ...existingDay, dayNumber: i + 1 });
+                        hasChanges = true;
+                    } else {
+                        newDays.push(existingDay);
+                    }
+                } else {
+                    // Create new day
                     newDays.push({
                         id: crypto.randomUUID(),
                         tripId: activeTrip.id,
-                        date: Timestamp.fromDate(date),
+                        date: Timestamp.fromDate(targetDate),
                         dayNumber: i + 1,
                         transportation: [],
                         activities: [],
@@ -161,7 +192,14 @@ export default function TripDetailsPage() {
                         photos: [],
                         isCompleted: false
                     } as DayPlan);
+                    hasChanges = true;
                 }
+            }
+
+            // Also check if we have extra days that are now out of range
+            if (existingDays.length !== expectedCount) hasChanges = true;
+
+            if (hasChanges) {
                 await updateTripDetails(activeTrip.id, { days: newDays });
             }
         };
@@ -277,8 +315,45 @@ export default function TripDetailsPage() {
 
         const date = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
         return format(date, 'MMM d');
-    };
+    };    // Scroll to today's card on initial load
+    useEffect(() => {
+        // Only run if not initializing, not loading, hasn't scrolled yet, and we have days
+        if (!isInitializing && !loading && !hasInitialScrolled && processedDays.length > 0) {
+            const now = new Date();
 
+            const todayDay = processedDays.find(day => {
+                const date = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
+                const match = (
+                    date.getDate() === now.getDate() &&
+                    date.getMonth() === now.getMonth() &&
+                    date.getFullYear() === now.getFullYear()
+                );
+                return match;
+            });
+
+            if (todayDay) {
+                const element = document.getElementById(`day-${todayDay.id}`);
+                if (element) {
+                    setHasInitialScrolled(true);
+
+                    const performScroll = () => {
+                        const el = document.getElementById(`day-${todayDay.id}`);
+                        if (el) {
+                            const rect = el.getBoundingClientRect();
+                            const offset = window.innerWidth < 640 ? 80 : 120; // Header height approximation
+                            const top = window.pageYOffset + rect.top - offset;
+                            window.scrollTo({ top, behavior: 'smooth' });
+                        }
+                    };
+
+                    // Multiple attempts as the page reaches its final layout
+                    setTimeout(performScroll, 500);
+                    setTimeout(performScroll, 1200);
+                    setTimeout(performScroll, 2500);
+                }
+            }
+        }
+    }, [isInitializing, loading, hasInitialScrolled, processedDays]);
 
 
     if (isInitializing || loading) {
