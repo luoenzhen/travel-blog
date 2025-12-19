@@ -19,6 +19,9 @@ interface TripState {
     setActiveTrip: (tripId: string) => void;
     initializeDays: (tripId: string) => Promise<void>;
     addActivity: (tripId: string, dayId: string, activity: Activity) => Promise<void>;
+    updateActivity: (tripId: string, dayId: string, activity: Activity) => Promise<void>;
+    removeActivity: (tripId: string, dayId: string, activityId: string) => Promise<void>;
+    toggleActivityLock: (tripId: string, dayId: string, activityId: string) => Promise<void>;
     addTransportation: (tripId: string, transport: TransportationDetails) => Promise<void>;
     updateTransportation: (tripId: string, transport: TransportationDetails) => Promise<void>;
     removeTransportation: (tripId: string, transportId: string) => Promise<void>;
@@ -292,6 +295,137 @@ export const useTripStore = create<TripState>((set, get) => ({
                 days: updatedDays,
                 budget: updatedTrip.budget
             });
+        } else {
+            const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
+            saveToLocalStorage(updatedTrips);
+        }
+
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+    },
+
+    updateActivity: async (tripId, dayId, activity) => {
+        const trip = get().trips.find(t => t.id === tripId);
+        if (!trip) return;
+
+        const day = trip.days.find(d => d.id === dayId);
+        if (!day) return;
+
+        const oldActivity = day.activities.find(a => a.id === activity.id);
+        const costDiff = (activity.cost || 0) - (oldActivity?.cost || 0);
+
+        const updatedDays = trip.days.map(d => {
+            if (d.id === dayId) {
+                return {
+                    ...d,
+                    activities: d.activities.map(a => a.id === activity.id ? activity : a)
+                };
+            }
+            return d;
+        });
+
+        const newSpending = { ...trip.budget.actualSpending };
+        newSpending.activities = (newSpending.activities || 0) + costDiff;
+
+        const updatedTrip = {
+            ...trip,
+            days: updatedDays,
+            budget: {
+                ...trip.budget,
+                actualSpending: newSpending
+            }
+        };
+
+        const user = useAuthStore.getState().user;
+        if (user) {
+            await updateTrip(trip.id, {
+                days: updatedDays,
+                budget: updatedTrip.budget
+            });
+        } else {
+            const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
+            saveToLocalStorage(updatedTrips);
+        }
+
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+    },
+
+    removeActivity: async (tripId, dayId, activityId) => {
+        const trip = get().trips.find(t => t.id === tripId);
+        if (!trip) return;
+
+        const day = trip.days.find(d => d.id === dayId);
+        if (!day) return;
+
+        const activityToRemove = day.activities.find(a => a.id === activityId);
+        const costToRemove = activityToRemove?.cost || 0;
+
+        const updatedDays = trip.days.map(d => {
+            if (d.id === dayId) {
+                return {
+                    ...d,
+                    activities: d.activities.filter(a => a.id !== activityId),
+                    customOrder: d.customOrder?.filter(id => id !== activityId)
+                };
+            }
+            return d;
+        });
+
+        const newSpending = { ...trip.budget.actualSpending };
+        newSpending.activities = Math.max(0, (newSpending.activities || 0) - costToRemove);
+
+        const updatedTrip = {
+            ...trip,
+            days: updatedDays,
+            budget: {
+                ...trip.budget,
+                actualSpending: newSpending
+            }
+        };
+
+        const user = useAuthStore.getState().user;
+        if (user) {
+            await updateTrip(trip.id, {
+                days: updatedDays,
+                budget: updatedTrip.budget
+            });
+        } else {
+            const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
+            saveToLocalStorage(updatedTrips);
+        }
+
+        set(state => ({
+            trips: state.trips.map(t => t.id === tripId ? updatedTrip : t),
+            activeTrip: state.activeTrip?.id === tripId ? updatedTrip : state.activeTrip
+        }));
+    },
+
+    toggleActivityLock: async (tripId, dayId, activityId) => {
+        const trip = get().trips.find(t => t.id === tripId);
+        if (!trip) return;
+
+        const updatedDays = trip.days.map(day => {
+            if (day.id === dayId) {
+                return {
+                    ...day,
+                    activities: day.activities.map(a =>
+                        a.id === activityId ? { ...a, isLocked: !a.isLocked } : a
+                    )
+                };
+            }
+            return day;
+        });
+
+        const updatedTrip = { ...trip, days: updatedDays };
+        const user = useAuthStore.getState().user;
+
+        if (user) {
+            await updateTrip(trip.id, { days: updatedDays });
         } else {
             const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
             saveToLocalStorage(updatedTrips);

@@ -308,6 +308,9 @@ export interface Activity {
 
     // Photos from this activity
     photos: Media[];
+
+    // Lock status
+    isLocked?: boolean;
 }
 
 // Dining Plan

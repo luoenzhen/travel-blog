@@ -29,11 +29,13 @@ import { CSS } from '@dnd-kit/utilities';
 interface DayCardProps {
     day: DayPlan;
     onAddActivity: () => void;
+    onEditActivity: (activity: Activity) => void;
+    onToggleActivityLock: (activityId: string) => void;
     onAddPhoto?: () => void;
     onRemovePhoto?: (photoId: string) => void;
 }
 
-function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
+function SortableItem({ id, children, disabled }: { id: string; children: React.ReactNode; disabled?: boolean }) {
     const {
         attributes,
         listeners,
@@ -41,7 +43,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
         transform,
         transition,
         isDragging
-    } = useSortable({ id });
+    } = useSortable({ id, disabled });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -53,16 +55,19 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
     return (
         <div ref={setNodeRef} style={style} className="group relative flex items-start gap-1 sm:gap-2">
             {/* Drag Handle */}
-            <div
-                {...attributes}
-                {...listeners}
-                className="mt-4 p-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-400 transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50"
-                title="Drag to reorder"
-            >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-12a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-                </svg>
-            </div>
+            {!disabled && (
+                <div
+                    {...attributes}
+                    {...listeners}
+                    className="mt-4 p-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-400 transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                    title="Drag to reorder"
+                >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-12a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+                    </svg>
+                </div>
+            )}
+            {disabled && <div className="w-6" />}
 
             <div className={`flex-1 transition-all duration-200 ${isDragging ? 'scale-[1.02] shadow-xl ring-2 ring-primary-500/20' : ''}`}>
                 {children}
@@ -71,7 +76,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
     );
 }
 
-export default function DayCard({ day, onAddActivity, onAddPhoto, onRemovePhoto }: DayCardProps) {
+export default function DayCard({ day, onAddActivity, onEditActivity, onToggleActivityLock, onAddPhoto, onRemovePhoto }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const dateObj = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
 
@@ -245,7 +250,11 @@ export default function DayCard({ day, onAddActivity, onAddPhoto, onRemovePhoto 
                             strategy={verticalListSortingStrategy}
                         >
                             {timelineItems.map((item) => (
-                                <SortableItem key={item._uniqueId} id={item._uniqueId}>
+                                <SortableItem
+                                    key={item._uniqueId}
+                                    id={item._uniqueId}
+                                    disabled={item._type === 'activity' && item.isLocked}
+                                >
                                     {item._type === 'transportation' ? (
                                         <TransportCard
                                             transport={item}
@@ -263,11 +272,39 @@ export default function DayCard({ day, onAddActivity, onAddPhoto, onRemovePhoto 
                                                 <div className="w-0.5 bg-gray-100 dark:bg-gray-700 flex-1 my-1 last:hidden"></div>
                                             </div>
                                             <div className="flex-1 pb-2 sm:pb-4">
-                                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-2 sm:p-3 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md transition-all border border-transparent hover:border-gray-100 dark:hover:border-gray-600">
+                                                <div className={`rounded-xl p-2 sm:p-3 transition-all border ${item.isLocked
+                                                    ? 'bg-gray-50/50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800'
+                                                    : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md border-transparent hover:border-gray-100 dark:hover:border-gray-600 cursor-pointer'
+                                                    }`}
+                                                    onClick={() => !item.isLocked && onEditActivity(item as Activity)}
+                                                >
                                                     <div className="flex justify-between items-start mb-0.5 sm:mb-1">
-                                                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
-                                                            {item.name}
-                                                        </span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`text-sm font-bold ${item.isLocked ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                                                                {item.name}
+                                                            </span>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onToggleActivityLock(item.id);
+                                                                }}
+                                                                className={`p-1 rounded-md transition-colors ${item.isLocked
+                                                                    ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                                                                    : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
+                                                                    }`}
+                                                                title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
+                                                            >
+                                                                {item.isLocked ? (
+                                                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                         <span className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-md border border-gray-100 dark:border-gray-600">
                                                             {item.startTime}
                                                         </span>

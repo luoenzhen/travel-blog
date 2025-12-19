@@ -21,11 +21,13 @@ interface AddActivityModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (data: Partial<Activity>) => Promise<void>;
+    onDelete?: (activityId: string) => Promise<void>;
     dayDate: string;
     currencyCode?: string;
+    editingActivity?: Activity;
 }
 
-export default function AddActivityModal({ isOpen, onClose, onSave, dayDate, currencyCode = 'USD' }: AddActivityModalProps) {
+export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, dayDate, currencyCode = 'USD', editingActivity }: AddActivityModalProps) {
     const currencySymbol = CURRENCIES.find(c => c.code === currencyCode)?.symbol || '$';
     const {
         register,
@@ -34,10 +36,20 @@ export default function AddActivityModal({ isOpen, onClose, onSave, dayDate, cur
         formState: { errors, isSubmitting },
     } = useForm<ActivityForm>({
         resolver: zodResolver(activitySchema),
-        defaultValues: {
+        values: editingActivity ? {
+            name: editingActivity.name,
+            location: editingActivity.location.name,
+            startTime: editingActivity.startTime,
+            endTime: editingActivity.endTime,
+            cost: editingActivity.cost,
+            notes: editingActivity.notes || ''
+        } : {
+            name: '',
+            location: '',
             cost: 0,
             startTime: '09:00',
-            endTime: '11:00'
+            endTime: '11:00',
+            notes: ''
         }
     });
 
@@ -68,7 +80,9 @@ export default function AddActivityModal({ isOpen, onClose, onSave, dayDate, cur
             <div className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl w-full max-w-lg shadow-2xl animate-slide-up overflow-hidden max-h-[90vh] flex flex-col">
                 <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Activity</h2>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                            {editingActivity ? 'Edit Activity' : 'Add Activity'}
+                        </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400">for {dayDate}</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
@@ -188,16 +202,30 @@ export default function AddActivityModal({ isOpen, onClose, onSave, dayDate, cur
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-white dark:hover:bg-gray-700 transition-colors"
+                        className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-white dark:hover:bg-gray-700 transition-colors"
                     >
                         Cancel
                     </button>
+                    {editingActivity && onDelete && (
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (confirm('Are you sure you want to delete this activity?')) {
+                                    await onDelete(editingActivity.id);
+                                    onClose();
+                                }
+                            }}
+                            className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-semibold hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors"
+                        >
+                            Delete
+                        </button>
+                    )}
                     <button
                         onClick={handleSubmit(onSubmit)}
                         disabled={isSubmitting}
                         className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
                     >
-                        {isSubmitting ? 'Saving...' : 'Add Activity'}
+                        {isSubmitting ? 'Saving...' : editingActivity ? 'Update Activity' : 'Add Activity'}
                     </button>
                 </div>
             </div>

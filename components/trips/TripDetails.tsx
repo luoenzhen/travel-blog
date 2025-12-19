@@ -33,6 +33,7 @@ export default function TripDetailsPage() {
     const [activeDayId, setActiveDayId] = useState<string | null>(null);
     const [editingAccommodation, setEditingAccommodation] = useState<AccommodationDetails | undefined>(undefined);
     const [editingTransport, setEditingTransport] = useState<TransportationDetails | undefined>(undefined);
+    const [editingActivity, setEditingActivity] = useState<Activity | undefined>(undefined);
 
     const tripId = (params.id as string) || searchParams.get('id') || '';
 
@@ -208,7 +209,19 @@ export default function TripDetailsPage() {
 
     const handleAddActivityClick = (dayId: string) => {
         setActiveDayId(dayId);
+        setEditingActivity(undefined);
         setIsActivityModalOpen(true);
+    };
+
+    const handleEditActivityClick = (dayId: string, activity: Activity) => {
+        setActiveDayId(dayId);
+        setEditingActivity(activity);
+        setIsActivityModalOpen(true);
+    };
+
+    const handleToggleActivityLock = async (dayId: string, activityId: string) => {
+        if (!activeTrip) return;
+        await useTripStore.getState().toggleActivityLock(activeTrip.id, dayId, activityId);
     };
 
     const handleAddPhotoClick = (dayId: string) => {
@@ -240,12 +253,22 @@ export default function TripDetailsPage() {
     const handleSaveActivity = async (activityData: Partial<Activity>) => {
         if (!activeTrip || !activeDayId) return;
 
-        const newActivity: Activity = {
-            id: crypto.randomUUID(),
-            ...activityData
-        } as Activity;
+        if (editingActivity) {
+            const updatedActivity = { ...editingActivity, ...activityData } as Activity;
+            await useTripStore.getState().updateActivity(activeTrip.id, activeDayId, updatedActivity);
+        } else {
+            const newActivity: Activity = {
+                id: crypto.randomUUID(),
+                ...activityData
+            } as Activity;
 
-        await addActivity(activeTrip.id, activeDayId, newActivity);
+            await addActivity(activeTrip.id, activeDayId, newActivity);
+        }
+    };
+
+    const handleDeleteActivity = async (activityId: string) => {
+        if (!activeTrip || !activeDayId) return;
+        await useTripStore.getState().removeActivity(activeTrip.id, activeDayId, activityId);
     };
 
     const handleSavePhoto = async (photoData: Media) => {
@@ -581,6 +604,8 @@ export default function TripDetailsPage() {
                                         key={day.id}
                                         day={day}
                                         onAddActivity={() => handleAddActivityClick(day.id)}
+                                        onEditActivity={(activity) => handleEditActivityClick(day.id, activity)}
+                                        onToggleActivityLock={(activityId) => handleToggleActivityLock(day.id, activityId)}
                                         onAddPhoto={() => handleAddPhotoClick(day.id)}
                                         onRemovePhoto={(photoId) => handleRemovePhoto(day.id, photoId)}
                                     />
@@ -789,8 +814,10 @@ export default function TripDetailsPage() {
                 isOpen={isActivityModalOpen}
                 onClose={() => setIsActivityModalOpen(false)}
                 onSave={handleSaveActivity}
+                onDelete={handleDeleteActivity}
                 dayDate={activeDayId ? getDayDateString(activeDayId) : ''}
                 currencyCode={currencyCode}
+                editingActivity={editingActivity}
             />
 
             <AddTransportModal
