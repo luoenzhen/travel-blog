@@ -278,8 +278,11 @@ export interface AccommodationDetails {
 }
 
 // Activity Types
+export type ActivityType = 'sightseeing' | 'dining' | 'shopping' | 'transport' | 'entertainment' | 'other';
+
 export interface Activity {
     id: string;
+    type: ActivityType;
 
     // Activity info
     name: string;

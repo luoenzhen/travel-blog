@@ -190,6 +190,63 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
         today.getMonth() === dateObj.getMonth() &&
         today.getFullYear() === dateObj.getFullYear();
 
+    const getActivityIcon = (type: string) => {
+        let colorClass = 'text-primary-500';
+        let icon = null;
+
+        switch (type) {
+            case 'sightseeing':
+                colorClass = 'text-blue-500';
+                icon = (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                );
+                break;
+            case 'dining':
+                colorClass = 'text-orange-500';
+                icon = (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v8a3 3 0 003 3h2a3 3 0 003-3V3m-4 0v3m-3 0v3m6-3v3M13 19s0 1 1 1h4s1 0 1-1V3s-6 0-6 6v10z" />
+                    </svg>
+                );
+                break;
+            case 'shopping':
+                colorClass = 'text-emerald-500';
+                icon = (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                );
+                break;
+            case 'transport':
+                colorClass = 'text-cyan-500';
+                icon = (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                    </svg>
+                );
+                break;
+            case 'entertainment':
+                colorClass = 'text-purple-500';
+                icon = (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                    </svg>
+                );
+                break;
+            default:
+                colorClass = 'text-gray-500';
+                icon = (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                    </svg>
+                );
+        }
+
+        return <span className={colorClass}>{icon}</span>;
+    };
+
     return (
         <div
             id={`day-${day.id}`}
@@ -280,7 +337,8 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                                 >
                                                     <div className="flex justify-between items-start mb-0.5 sm:mb-1">
                                                         <div className="flex items-center gap-2">
-                                                            <span className={`text-sm font-bold ${item.isLocked ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                                                            <span className={`text-sm font-bold ${item.isLocked ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-200'} flex items-center gap-1.5`}>
+                                                                {getActivityIcon((item as Activity).type || 'other')}
                                                                 {item.name}
                                                             </span>
                                                             <button

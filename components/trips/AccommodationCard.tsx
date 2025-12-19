@@ -19,7 +19,7 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
                     <div className="flex items-center gap-2 sm:gap-3">
                         <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 flex-shrink-0">
                             <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10V6a2 2 0 012-2h14a2 2 0 012 2v4M3 20v-8a2 2 0 012-2h14a2 2 0 012 2v8M3 14h18M12 4v6" />
                             </svg>
                         </div>
                         <div>

@@ -7,6 +7,7 @@ import { Activity } from '@/types';
 import { CURRENCIES } from '@/lib/constants';
 
 const activitySchema = z.object({
+    type: z.enum(['sightseeing', 'dining', 'shopping', 'transport', 'entertainment', 'other']),
     name: z.string().min(2, 'Name is required'),
     location: z.string().min(2, 'Location is required'),
     startTime: z.string().min(1, 'Start time is required'),
@@ -33,10 +34,12 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
         register,
         handleSubmit,
         reset,
+        watch,
         formState: { errors, isSubmitting },
     } = useForm<ActivityForm>({
         resolver: zodResolver(activitySchema),
         values: editingActivity ? {
+            type: editingActivity.type || 'sightseeing',
             name: editingActivity.name,
             location: editingActivity.location.name,
             startTime: editingActivity.startTime,
@@ -44,6 +47,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
             cost: editingActivity.cost,
             notes: editingActivity.notes || ''
         } : {
+            type: 'sightseeing',
             name: '',
             location: '',
             cost: 0,
@@ -56,6 +60,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
     const onSubmit = async (data: ActivityForm) => {
         try {
             await onSave({
+                type: data.type,
                 name: data.name,
                 location: { name: data.location, latitude: 0, longitude: 0 }, // Placeholder for now
                 startTime: data.startTime,
@@ -72,6 +77,8 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
             console.error('Failed to save activity', error);
         }
     };
+
+    const selectedType = watch('type');
 
     if (!isOpen) return null;
 
@@ -93,6 +100,31 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 overflow-y-auto">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Activity Type
+                        </label>
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            {(['sightseeing', 'dining', 'shopping', 'transport', 'entertainment', 'other'] as const).map((t) => (
+                                <label
+                                    key={t}
+                                    className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all cursor-pointer ${selectedType === t
+                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                                        : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 text-gray-500'
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        value={t}
+                                        {...register('type')}
+                                        className="hidden"
+                                    />
+                                    <span className="text-[10px] font-bold capitalize">{t}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Activity Name
