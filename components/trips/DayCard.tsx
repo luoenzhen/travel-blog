@@ -45,12 +45,24 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 50 : undefined,
-        position: (isDragging ? 'relative' : 'static') as any,
+        position: (isDragging ? 'relative' : 'static') as 'relative' | 'static',
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-none group">
-            <div className={`transition-all duration-200 ${isDragging ? 'scale-[1.02] shadow-xl ring-2 ring-primary-500/20' : ''}`}>
+        <div ref={setNodeRef} style={style} className="group relative flex items-start gap-1 sm:gap-2">
+            {/* Drag Handle */}
+            <div
+                {...attributes}
+                {...listeners}
+                className="mt-4 p-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-400 transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                title="Drag to reorder"
+            >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-12a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+                </svg>
+            </div>
+
+            <div className={`flex-1 transition-all duration-200 ${isDragging ? 'scale-[1.02] shadow-xl ring-2 ring-primary-500/20' : ''}`}>
                 {children}
             </div>
         </div>
@@ -69,8 +81,8 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
         }),
         useSensor(TouchSensor, {
             activationConstraint: {
-                delay: 200,
-                tolerance: 5,
+                delay: 0,
+                tolerance: 10,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -78,19 +90,24 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
         })
     );
 
+    type TimelineItem =
+        | (TransportationDetails & { _type: 'transportation'; _uniqueId: string; _sortTime: string })
+        | (Activity & { _type: 'activity'; _uniqueId: string; _sortTime: string })
+        | (AccommodationDetails & { _type: 'stay' | 'stay-checkout'; _uniqueId: string; _sortTime: string });
+
     // Helper to normalize any time format to HH:mm (24h) for sorting
-    const to24h = (time: any) => {
+    const to24h = (time: string | Timestamp | Date | { seconds: number } | unknown) => {
         if (!time) return '00:00';
 
         // Handle Firebase Timestamp or Date objects (Transportation)
-        if (typeof time === 'object') {
+        if (typeof time === 'object' && time !== null) {
             let date: Date;
-            if (time.seconds !== undefined) {
-                date = new Date(time.seconds * 1000);
-            } else if (typeof time.toDate === 'function') {
-                date = time.toDate();
+            if ('seconds' in time) {
+                date = new Date((time as { seconds: number }).seconds * 1000);
+            } else if ('toDate' in time && typeof (time as { toDate: () => Date }).toDate === 'function') {
+                date = (time as { toDate: () => Date }).toDate();
             } else {
-                date = new Date(time);
+                date = new Date(time as string | number | Date);
             }
             if (isNaN(date.getTime())) return '00:00';
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -101,7 +118,7 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
             const match = time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
             if (!match) return time; // Already HH:mm potentially
 
-            let [_, hours, minutes, modifier] = match;
+            const [, hours, minutes, modifier] = match;
             let h = parseInt(hours, 10);
             if (modifier) {
                 if (modifier.toUpperCase() === 'PM' && h < 12) h += 12;
@@ -116,9 +133,9 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
     const isCheckInDay = day.accommodation && day.accommodation.checkInDate === dateObj.toISOString().split('T')[0];
 
     const rawItems = [
-        ...(day.transportation || []).map(f => ({ ...f, _type: 'transportation', _uniqueId: f.id, _sortTime: to24h(f.departureTime) })),
-        ...(day.activities || []).map(a => ({ ...a, _type: 'activity', _uniqueId: a.id, _sortTime: to24h(a.startTime) })),
-        ...(day.accommodationCheckout ? [{ ...day.accommodationCheckout, _type: 'stay-checkout', _uniqueId: `checkout-${day.accommodationCheckout.id}`, _sortTime: to24h(day.accommodationCheckout.checkOutTime) }] : []),
+        ...(day.transportation || []).map(f => ({ ...f, _type: 'transportation', _uniqueId: f.id, _sortTime: to24h(f.departureTime) } as TimelineItem)),
+        ...(day.activities || []).map(a => ({ ...a, _type: 'activity', _uniqueId: a.id, _sortTime: to24h(a.startTime) } as TimelineItem)),
+        ...(day.accommodationCheckout ? [{ ...day.accommodationCheckout, _type: 'stay-checkout', _uniqueId: `checkout-${day.accommodationCheckout.id}`, _sortTime: to24h(day.accommodationCheckout.checkOutTime) } as TimelineItem] : []),
     ];
 
     if (day.accommodation) {
@@ -127,11 +144,11 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
             _type: 'stay',
             _uniqueId: `stay-${day.accommodation.id}`,
             _sortTime: isCheckInDay ? to24h(day.accommodation.checkInTime) : '15:00'
-        });
+        } as TimelineItem);
     }
 
     // Sort items
-    let timelineItems: any[];
+    let timelineItems: TimelineItem[];
     if (day.customOrder && day.customOrder.length > 0) {
         timelineItems = [...rawItems].sort((a, b) => {
             const indexA = day.customOrder!.indexOf(a._uniqueId);
@@ -214,7 +231,7 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
                             items={timelineItems.map(i => i._uniqueId)}
                             strategy={verticalListSortingStrategy}
                         >
-                            {timelineItems.map((item: any) => (
+                            {timelineItems.map((item) => (
                                 <SortableItem key={item._uniqueId} id={item._uniqueId}>
                                     {item._type === 'transportation' ? (
                                         <TransportCard
@@ -227,7 +244,7 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
                                             isCheckIn={item._type === 'stay' && isCheckInDay}
                                             isCheckOut={item._type === 'stay-checkout'}
                                         />
-                                    ) : (
+                                    ) : item._type === 'activity' ? (
                                         <div className="flex gap-4 group/activity">
                                             <div className="flex flex-col items-center">
                                                 <div className="w-2 h-2 bg-primary-500 rounded-full mt-2"></div>
@@ -254,13 +271,13 @@ export default function DayCard({ day, onAddActivity, onEditTransport }: DayCard
                                                     )}
                                                     {item.notes && (
                                                         <p className="text-xs text-gray-600 dark:text-gray-300 italic bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg border border-yellow-100 dark:border-yellow-900/30">
-                                                            "{item.notes}"
+                                                            &quot;{item.notes}&quot;
                                                         </p>
                                                     )}
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
+                                    ) : null}
                                 </SortableItem>
                             ))}
                         </SortableContext>

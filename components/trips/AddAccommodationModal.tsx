@@ -66,7 +66,7 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
             if (initialData) {
                 // Editing existing stay
                 reset({
-                    type: initialData.type as any,
+                    type: initialData.type,
                     checkInDate: initialData.checkInDate,
                     checkInTime: initialData.checkInTime,
                     checkOutDate: initialData.checkOutDate,
@@ -104,7 +104,7 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
         try {
             await onSave({
                 name: data.name,
-                type: data.type as any,
+                type: data.type,
                 address: data.address,
                 location: { name: data.address, latitude: 0, longitude: 0 },
                 checkInDate: data.checkInDate,
@@ -217,7 +217,7 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
                                                         // eslint-disable-next-line
                                                         return Number(new Function(`return ${value}`)());
                                                     }
-                                                } catch (e) {
+                                                } catch {
                                                     return NaN;
                                                 }
                                             }

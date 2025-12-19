@@ -41,9 +41,9 @@ export default function LoginPage() {
             const user = await signInWithEmail(data.email, data.password);
             setUser(user);
             router.push('/'); // Redirect to home after login
-        } catch (error: any) {
+        } catch (error: unknown) {
             setAuthError('Invalid email or password');
-            setError(error.message);
+            setError((error as Error).message);
         } finally {
             setLoading(false);
         }
@@ -56,9 +56,9 @@ export default function LoginPage() {
             const user = await signInWithGoogle();
             setUser(user);
             router.push('/'); // Redirect to home after social login
-        } catch (error: any) {
-            setAuthError(error.message);
-            setError(error.message);
+        } catch (error: unknown) {
+            setAuthError((error as Error).message);
+            setError((error as Error).message);
         } finally {
             setLoading(false);
         }
@@ -74,8 +74,8 @@ export default function LoginPage() {
             await resetPassword(emailValue);
             setResetSent(true);
             setAuthError(null);
-        } catch (error: any) {
-            setAuthError(error.message);
+        } catch (error: unknown) {
+            setAuthError((error as Error).message);
         }
     };
 
@@ -184,7 +184,7 @@ export default function LoginPage() {
             </form>
 
             <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link href="/auth/signup" className="text-primary-500 hover:text-primary-600 font-semibold hover:underline">
                     Sign up
                 </Link>

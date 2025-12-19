@@ -42,9 +42,9 @@ export default function SignupPage() {
             const user = await signUpWithEmail(data.email, data.password, data.displayName);
             setUser(user);
             router.push('/profile/setup'); // Redirect to profile setup after signup
-        } catch (error: any) {
-            setAuthError(error.message);
-            setError(error.message);
+        } catch (error: unknown) {
+            setAuthError((error as Error).message);
+            setError((error as Error).message);
         } finally {
             setLoading(false);
         }
@@ -57,9 +57,9 @@ export default function SignupPage() {
             const user = await signInWithGoogle();
             setUser(user);
             router.push('/'); // Redirect to home after social login
-        } catch (error: any) {
-            setAuthError(error.message);
-            setError(error.message);
+        } catch (error: unknown) {
+            setAuthError((error as Error).message);
+            setError((error as Error).message);
         } finally {
             setLoading(false);
         }

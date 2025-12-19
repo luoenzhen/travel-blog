@@ -3,13 +3,12 @@ import {
     signInWithEmailAndPassword,
     signOut as firebaseSignOut,
     onAuthStateChanged,
-    User as FirebaseUser,
     GoogleAuthProvider,
     signInWithPopup,
     sendPasswordResetEmail,
     updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { auth, db } from './config';
 import { User } from '@/types';
 
@@ -41,8 +40,8 @@ export const signUpWithEmail = async (
             displayName,
             photoURL: firebaseUser.photoURL || undefined,
             bio: '',
-            createdAt: serverTimestamp() as any,
-            updatedAt: serverTimestamp() as any,
+            createdAt: serverTimestamp() as unknown as Timestamp,
+            updatedAt: serverTimestamp() as unknown as Timestamp,
             stats: {
                 postsCount: 0,
                 followersCount: 0,
@@ -61,8 +60,8 @@ export const signUpWithEmail = async (
         await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
 
         return { id: firebaseUser.uid, ...newUser } as User;
-    } catch (error: any) {
-        throw new Error(error.message || 'Failed to sign up');
+    } catch (error: unknown) {
+        throw new Error((error as Error).message || 'Failed to sign up');
     }
 };
 
@@ -84,8 +83,8 @@ export const signInWithEmail = async (
         }
 
         return { id: firebaseUser.uid, ...userDoc.data() } as User;
-    } catch (error: any) {
-        throw new Error(error.message || 'Failed to sign in');
+    } catch (error: unknown) {
+        throw new Error((error as Error).message || 'Failed to sign in');
     }
 };
 
@@ -110,8 +109,8 @@ export const signInWithGoogle = async (): Promise<User> => {
             displayName: firebaseUser.displayName || 'Anonymous',
             photoURL: firebaseUser.photoURL || undefined,
             bio: '',
-            createdAt: serverTimestamp() as any,
-            updatedAt: serverTimestamp() as any,
+            createdAt: serverTimestamp() as unknown as Timestamp,
+            updatedAt: serverTimestamp() as unknown as Timestamp,
             stats: {
                 postsCount: 0,
                 followersCount: 0,
@@ -130,8 +129,8 @@ export const signInWithGoogle = async (): Promise<User> => {
         await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
 
         return { id: firebaseUser.uid, ...newUser } as User;
-    } catch (error: any) {
-        throw new Error(error.message || 'Failed to sign in with Google');
+    } catch (error: unknown) {
+        throw new Error((error as Error).message || 'Failed to sign in with Google');
     }
 };
 
@@ -140,8 +139,8 @@ export const signOut = async (): Promise<void> => {
     if (!auth) return;
     try {
         await firebaseSignOut(auth);
-    } catch (error: any) {
-        throw new Error(error.message || 'Failed to sign out');
+    } catch (error: unknown) {
+        throw new Error((error as Error).message || 'Failed to sign out');
     }
 };
 
@@ -150,8 +149,8 @@ export const resetPassword = async (email: string): Promise<void> => {
     const { auth } = ensureInitialized();
     try {
         await sendPasswordResetEmail(auth, email);
-    } catch (error: any) {
-        throw new Error(error.message || 'Failed to send password reset email');
+    } catch (error: unknown) {
+        throw new Error((error as Error).message || 'Failed to send password reset email');
     }
 };
 
@@ -185,7 +184,7 @@ export const onAuthChange = (callback: (user: User | null) => void) => {
         if (firebaseUser) {
             const userDoc = await getDoc(doc(db!, 'users', firebaseUser.uid));
             if (userDoc.exists()) {
-                callback({ id: firebaseUser.uid, ...(userDoc.data() as any) } as User);
+                callback({ id: firebaseUser.uid, ...(userDoc.data() as Omit<User, 'id'>) } as User);
             } else {
                 callback(null);
             }

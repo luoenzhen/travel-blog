@@ -157,7 +157,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, dayDate, cur
                                                     // eslint-disable-next-line
                                                     return Number(new Function(`return ${value}`)());
                                                 }
-                                            } catch (e) {
+                                            } catch {
                                                 return NaN; // Let validation handle it
                                             }
                                         }

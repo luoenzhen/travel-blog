@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { TransportationDetails, TransportType } from '@/types';
 import { Timestamp } from 'firebase/firestore';
-import { CURRENCIES } from '@/lib/constants';
+
 
 const transportSchema = z.object({
     type: z.enum(['flight', 'train', 'bus', 'other']),
@@ -47,7 +47,7 @@ interface AddTransportModalProps {
 }
 
 export default function AddTransportModal({ isOpen, onClose, onSave, onDelete, dayDate, dayDateIso, currencyCode = 'USD', initialData }: AddTransportModalProps) {
-    const currencySymbol = CURRENCIES.find(c => c.code === currencyCode)?.symbol || '$';
+
 
     const [tripType, setTripType] = useState<'oneway' | 'return'>('oneway');
     const {
@@ -91,22 +91,24 @@ export default function AddTransportModal({ isOpen, onClose, onSave, onDelete, d
         if (isOpen) {
             if (initialData) {
                 let depDate: Date;
-                if ((initialData.departureTime as any)?.seconds !== undefined) {
-                    depDate = new Date((initialData.departureTime as any).seconds * 1000);
-                } else if (initialData.departureTime && typeof initialData.departureTime.toDate === 'function') {
-                    depDate = initialData.departureTime.toDate();
+                const departureTime = initialData.departureTime as unknown as { seconds?: number; toDate?: () => Date };
+                if (departureTime?.seconds !== undefined) {
+                    depDate = new Date(departureTime.seconds * 1000);
+                } else if (typeof departureTime?.toDate === 'function') {
+                    depDate = departureTime.toDate();
                 } else {
-                    depDate = new Date(initialData.departureTime as any);
+                    depDate = new Date(initialData.departureTime as unknown as string | number | Date);
                 }
                 if (isNaN(depDate.getTime())) depDate = new Date();
 
                 let arrDate: Date;
-                if ((initialData.arrivalTime as any)?.seconds !== undefined) {
-                    arrDate = new Date((initialData.arrivalTime as any).seconds * 1000);
-                } else if (initialData.arrivalTime && typeof initialData.arrivalTime.toDate === 'function') {
-                    arrDate = initialData.arrivalTime.toDate();
+                const arrivalTime = initialData.arrivalTime as unknown as { seconds?: number; toDate?: () => Date };
+                if (arrivalTime?.seconds !== undefined) {
+                    arrDate = new Date(arrivalTime.seconds * 1000);
+                } else if (typeof arrivalTime?.toDate === 'function') {
+                    arrDate = arrivalTime.toDate();
                 } else {
-                    arrDate = new Date(initialData.arrivalTime as any);
+                    arrDate = new Date(initialData.arrivalTime as unknown as string | number | Date);
                 }
                 if (isNaN(arrDate.getTime())) arrDate = new Date();
 

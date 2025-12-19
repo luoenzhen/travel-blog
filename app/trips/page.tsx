@@ -22,7 +22,7 @@ export default function TripsPage() {
     if (!isClient) return null; // Avoid hydration mismatch for local storage
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-safe">
             <div className="container mx-auto px-4 py-4 sm:py-8">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
                     <div>
@@ -51,9 +51,9 @@ export default function TripsPage() {
                                     await importTrip(tripData);
                                     e.target.value = ''; // Reset input
                                     alert('Trip imported successfully!');
-                                } catch (error: any) {
+                                } catch (error: unknown) {
                                     console.error('Import error:', error);
-                                    alert('Failed to import trip: ' + error.message);
+                                    alert('Failed to import trip: ' + (error as Error).message);
                                 }
                             }}
                         />
@@ -90,7 +90,7 @@ export default function TripsPage() {
                             <TripCard
                                 key={trip.id}
                                 trip={trip}
-                                onClick={() => router.push(`/trips/${trip.id}`)}
+                                onClick={() => router.push(`/trips/details?id=${trip.id}`)}
                                 onDelete={(e) => {
                                     e.stopPropagation();
                                     setTripToDelete(trip.id);

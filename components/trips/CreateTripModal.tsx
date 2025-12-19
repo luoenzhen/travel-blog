@@ -219,7 +219,7 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
                                     if (startDateRef.current) {
                                         startDateRef.current.showPicker();
                                     }
-                                } catch (error) {
+                                } catch {
                                     // Fallback for older browsers
                                     startDateRef.current?.click();
                                 }
@@ -254,7 +254,7 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
                                     if (endDateRef.current) {
                                         endDateRef.current.showPicker();
                                     }
-                                } catch (error) {
+                                } catch {
                                     endDateRef.current?.click();
                                 }
                             }}>

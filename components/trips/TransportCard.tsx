@@ -1,7 +1,7 @@
 'use client';
 
 import { TransportationDetails } from '@/types';
-import { Timestamp } from 'firebase/firestore';
+
 
 interface TransportCardProps {
     transport: TransportationDetails;
@@ -10,17 +10,17 @@ interface TransportCardProps {
 
 export default function TransportCard({ transport, onClick }: TransportCardProps) {
     // Format helpers
-    const formatTime = (ts: any) => {
+    const formatTime = (ts: string | { seconds: number } | { toDate: () => Date } | Date | null | undefined) => {
         if (!ts) return '';
         if (typeof ts === 'string') return ts.split('T')[1]?.slice(0, 5) || ts;
 
         let date: Date;
-        if (ts.seconds !== undefined) {
-            date = new Date(ts.seconds * 1000);
-        } else if (typeof ts.toDate === 'function') {
-            date = ts.toDate();
+        if (ts && typeof ts === 'object' && 'seconds' in ts) {
+            date = new Date((ts as { seconds: number }).seconds * 1000);
+        } else if (ts && typeof ts === 'object' && 'toDate' in ts && typeof (ts as { toDate: () => Date }).toDate === 'function') {
+            date = (ts as { toDate: () => Date }).toDate();
         } else {
-            date = new Date(ts);
+            date = new Date(ts as string | number | Date);
         }
 
         if (isNaN(date.getTime())) return 'Invalid Time';
