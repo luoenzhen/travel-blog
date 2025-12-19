@@ -506,7 +506,6 @@ export default function TripDetailsPage() {
                                         key={day.id}
                                         day={day}
                                         onAddActivity={() => handleAddActivityClick(day.id)}
-                                        onEditTransport={handleEditTransportClick}
                                         onAddPhoto={() => handleAddPhotoClick(day.id)}
                                         onRemovePhoto={(photoId) => handleRemovePhoto(day.id, photoId)}
                                     />

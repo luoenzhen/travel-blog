@@ -29,7 +29,6 @@ import { CSS } from '@dnd-kit/utilities';
 interface DayCardProps {
     day: DayPlan;
     onAddActivity: () => void;
-    onEditTransport?: (transport: TransportationDetails) => void;
     onAddPhoto?: () => void;
     onRemovePhoto?: (photoId: string) => void;
 }
@@ -72,7 +71,7 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
     );
 }
 
-export default function DayCard({ day, onAddActivity, onEditTransport, onAddPhoto, onRemovePhoto }: DayCardProps) {
+export default function DayCard({ day, onAddActivity, onAddPhoto, onRemovePhoto }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const dateObj = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
 
@@ -249,7 +248,6 @@ export default function DayCard({ day, onAddActivity, onEditTransport, onAddPhot
                                     {item._type === 'transportation' ? (
                                         <TransportCard
                                             transport={item}
-                                            onClick={onEditTransport ? () => onEditTransport(item) : undefined}
                                         />
                                     ) : item._type === 'stay' || item._type === 'stay-checkout' ? (
                                         <AccommodationCard

@@ -71,23 +71,24 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
 
     return (
         <div className="w-full pb-2 sm:pb-4 group" onClick={onClick}>
-            <div className={`bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 border border-${color}-100 dark:border-${color}-900/30 shadow-sm hover:shadow-md transition-all ${onClick ? 'cursor-pointer' : ''}`}>
+            <div className={`bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 border border-${color}-100 dark:border-${color}-900/30 shadow-sm transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700' : ''}`}>
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:mb-2 mb-1">
                     <div className="flex items-center gap-1.5">
                         <span className="font-bold text-gray-900 dark:text-gray-100 uppercase text-[9px] sm:text-sm">{transport.airline}</span>
                         <div className={`w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-${color}-50 dark:bg-${color}-900/20 flex items-center justify-center text-${color}-600 dark:text-${color}-400 flex-shrink-0`}>
-                            {/* Adjusted Icon size to be smaller */}
                             <div className="scale-75 sm:scale-90">
                                 {getIcon()}
                             </div>
                         </div>
                         <span className="text-gray-400 text-[8px] sm:text-xs">{transport.flightNumber}</span>
                     </div>
-                    {transport.bookingReference && (
-                        <span className="text-[8px] sm:text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-gray-600 dark:text-gray-300">
-                            REF: {transport.bookingReference}
-                        </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {transport.bookingReference && (
+                            <span className="text-[8px] sm:text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-gray-600 dark:text-gray-300">
+                                REF: {transport.bookingReference}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 md:gap-6">
