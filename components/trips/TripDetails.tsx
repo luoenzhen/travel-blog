@@ -88,7 +88,7 @@ export default function TripDetailsPage() {
                         }
 
                         if (isNaN(fDate.getTime())) return false;
-                        return format(fDate, 'yyyy-MM-dd') === dayDateStr;
+                        return fDate.toLocaleDateString('en-CA') === dayDate.toLocaleDateString('en-CA');
                     });
                 }
 
