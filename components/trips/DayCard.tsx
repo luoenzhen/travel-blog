@@ -7,6 +7,7 @@ import TransportCard from './TransportCard';
 import AccommodationCard from './AccommodationCard';
 import { useTripStore } from '@/store/tripStore';
 import Image from 'next/image';
+import { useState } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -78,6 +79,7 @@ function SortableItem({ id, children, disabled }: { id: string; children: React.
 
 export default function DayCard({ day, onAddActivity, onEditActivity, onToggleActivityLock, onAddPhoto, onRemovePhoto }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
+    const [hoveredImage, setHoveredImage] = useState<string | null>(null);
     const dateObj = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
 
     const sensors = useSensors(
@@ -250,227 +252,245 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
     return (
         <div
             id={`day-${day.id}`}
-            className={`rounded-2xl p-4 sm:p-6 shadow-sm border-2 h-full transition-all duration-300 scroll-mt-20 sm:scroll-mt-32 ${isToday
+            className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 shadow-sm border-2 h-full transition-all duration-500 scroll-mt-20 sm:scroll-mt-32 ${isToday
                 ? 'border-amber-400 dark:border-amber-500 shadow-lg shadow-amber-500/10 scale-[1.01] bg-white dark:bg-gray-800'
                 : customColor
                     ? 'border-transparent'
                     : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800'
-                }`}
+                } ${hoveredImage ? 'border-primary-400/50 shadow-2xl scale-[1.02]' : ''}`}
             style={(!isToday && customColor) ? { backgroundColor: customColor } : undefined}
         >
-            <div className="flex justify-between items-start mb-4 sm:mb-6">
-                <div className="relative">
-                    {isToday && (
-                        <div className="absolute -top-6 left-0 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/30 animate-pulse tracking-wider">
-                            TODAY
-                        </div>
-                    )}
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                        Day {day.dayNumber}
-                    </h3>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">
-                        {format(dateObj, 'EEEE, MMM d')}
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={onAddActivity}
-                        className="p-2 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
-                        title="Add Activity"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                    </button>
-                    <button
-                        onClick={onAddPhoto}
-                        className="p-2 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-lg hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors"
-                        title="Add Photo"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </button>
-                </div>
+            {/* Dynamic Full Card Background */}
+            <div className={`absolute inset-0 z-0 transition-opacity duration-700 pointer-events-none ${hoveredImage ? 'opacity-100' : 'opacity-0'}`}>
+                {hoveredImage && (
+                    <>
+                        <img
+                            src={hoveredImage}
+                            alt="Background"
+                            className="w-full h-full object-cover object-center scale-110 blur-sm brightness-50"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/20 to-black/80" />
+                    </>
+                )}
             </div>
 
-            <div className="space-y-2 sm:space-y-4">
-                {timelineItems.length > 0 ? (
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                    >
-                        <SortableContext
-                            items={timelineItems.map(i => i._uniqueId)}
-                            strategy={verticalListSortingStrategy}
+            <div className="relative z-10">
+                <div className="flex justify-between items-start mb-4 sm:mb-6">
+                    <div className="relative">
+                        {isToday && (
+                            <div className="absolute -top-6 left-0 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/30 animate-pulse tracking-wider">
+                                TODAY
+                            </div>
+                        )}
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                            Day {day.dayNumber}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">
+                            {format(dateObj, 'EEEE, MMM d')}
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={onAddActivity}
+                            className="p-2 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+                            title="Add Activity"
                         >
-                            {timelineItems.map((item) => (
-                                <SortableItem
-                                    key={item._uniqueId}
-                                    id={item._uniqueId}
-                                    disabled={item._type === 'activity' && item.isLocked}
-                                >
-                                    {item._type === 'transportation' ? (
-                                        <TransportCard
-                                            transport={item}
-                                        />
-                                    ) : item._type === 'stay' || item._type === 'stay-checkout' ? (
-                                        <AccommodationCard
-                                            accommodation={item}
-                                            isCheckIn={item._type === 'stay' && isCheckInDay}
-                                            isCheckOut={item._type === 'stay-checkout'}
-                                        />
-                                    ) : item._type === 'activity' ? (
-                                        <div className="flex gap-4 group/activity">
-                                            <div className="flex flex-col items-center">
-                                                <div className="w-2 h-2 bg-primary-500 rounded-full mt-2"></div>
-                                                <div className="w-0.5 bg-gray-100 dark:bg-gray-700 flex-1 my-1 last:hidden"></div>
-                                            </div>
-                                            <div className="flex-1 pb-2 sm:pb-4">
-                                                <div className={`relative overflow-hidden rounded-xl transition-all border ${item.isLocked
-                                                    ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
-                                                    : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md border-transparent hover:border-gray-100 dark:hover:border-gray-600 cursor-pointer'
-                                                    } ${(item as Activity).imageUrl ? 'min-h-[100px]' : 'p-2 sm:p-3'}`}
-                                                    onClick={() => !item.isLocked && onEditActivity(item as Activity)}
-                                                >
-                                                    {/* Smart Image Background */}
-                                                    {(item as Activity).imageUrl && (
-                                                        <div className="absolute inset-0 z-0">
-                                                            <img
-                                                                src={(item as Activity).imageUrl}
-                                                                alt={item.name}
-                                                                className="w-full h-full object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
-                                                            />
-                                                            {/* Multi-layered overlay for maximum contrast */}
-                                                            <div className="absolute inset-0 bg-black/40" />
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 dark:from-black/95" />
-                                                        </div>
-                                                    )}
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={onAddPhoto}
+                            className="p-2 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-lg hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors"
+                            title="Add Photo"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
 
-                                                    <div className={`relative z-10 ${(item as Activity).imageUrl ? 'p-3 text-white' : ''}`}>
-                                                        <div className="flex justify-between items-start mb-0.5 sm:mb-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${item.isLocked
-                                                                    ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-                                                                    : (item as Activity).imageUrl
-                                                                        ? 'text-white bg-blue-600/80 backdrop-blur-md border border-white/20 shadow-lg'
-                                                                        : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50'
-                                                                    }`}>
-                                                                    <span className="flex-shrink-0 group-hover/activity:scale-110 transition-transform">
-                                                                        {getActivityIcon((item as Activity).type || 'other')}
-                                                                    </span>
-                                                                    <span className="truncate max-w-[120px] sm:max-w-[200px]">{item.name}</span>
-                                                                </span>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        onToggleActivityLock(item.id);
-                                                                    }}
-                                                                    className={`p-1 rounded-md transition-colors ${item.isLocked
-                                                                        ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                                                                        : (item as Activity).imageUrl ? 'text-white/40 hover:text-white bg-white/10' : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
-                                                                        }`}
-                                                                    title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
-                                                                >
-                                                                    {item.isLocked ? (
-                                                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                                                        </svg>
-                                                                    ) : (
-                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
-                                                                        </svg>
-                                                                    )}
-                                                                </button>
+                <div className="space-y-2 sm:space-y-4">
+                    {timelineItems.length > 0 ? (
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <SortableContext
+                                items={timelineItems.map(i => i._uniqueId)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {timelineItems.map((item) => (
+                                    <SortableItem
+                                        key={item._uniqueId}
+                                        id={item._uniqueId}
+                                        disabled={item._type === 'activity' && item.isLocked}
+                                    >
+                                        {item._type === 'transportation' ? (
+                                            <TransportCard
+                                                transport={item}
+                                            />
+                                        ) : item._type === 'stay' || item._type === 'stay-checkout' ? (
+                                            <AccommodationCard
+                                                accommodation={item}
+                                                isCheckIn={item._type === 'stay' && isCheckInDay}
+                                                isCheckOut={item._type === 'stay-checkout'}
+                                            />
+                                        ) : item._type === 'activity' ? (
+                                            <div className="flex gap-4 group/activity">
+                                                <div className="flex flex-col items-center">
+                                                    <div className="w-2 h-2 bg-primary-500 rounded-full mt-2"></div>
+                                                    <div className="w-0.5 bg-gray-100 dark:bg-gray-700 flex-1 my-1 last:hidden"></div>
+                                                </div>
+                                                <div className="flex-1 pb-2 sm:pb-4">
+                                                    <div className={`relative overflow-hidden rounded-xl transition-all border group/activity ${item.isLocked
+                                                        ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+                                                        : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md border-transparent hover:border-gray-100 dark:hover:border-gray-600 cursor-pointer'
+                                                        } ${(item as Activity).imageUrl ? 'min-h-[100px]' : 'p-2 sm:p-3'}`}
+                                                        onClick={() => !item.isLocked && onEditActivity(item as Activity)}
+                                                        onMouseEnter={() => (item as Activity).imageUrl && setHoveredImage((item as Activity).imageUrl!)}
+                                                        onMouseLeave={() => setHoveredImage(null)}
+                                                    >
+                                                        {/* Smart Image Background */}
+                                                        {(item as Activity).imageUrl && (
+                                                            <div className="absolute inset-0 z-0">
+                                                                <img
+                                                                    src={(item as Activity).imageUrl}
+                                                                    alt={item.name}
+                                                                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
+                                                                />
+                                                                {/* Multi-layered overlay for maximum contrast */}
+                                                                <div className="absolute inset-0 bg-black/40" />
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 dark:from-black/95" />
                                                             </div>
-                                                            <span className={`text-xs font-mono px-2 py-0.5 rounded-md border ${item.isLocked ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400' : (item as Activity).imageUrl ? 'bg-white/20 backdrop-blur-md border-white/20 text-white' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
-                                                                {item.startTime}
-                                                            </span>
+                                                        )}
+
+                                                        <div className={`relative z-10 ${(item as Activity).imageUrl ? 'p-3 text-white' : ''}`}>
+                                                            <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${item.isLocked
+                                                                        ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+                                                                        : (item as Activity).imageUrl
+                                                                            ? 'text-white bg-blue-600/80 backdrop-blur-md border border-white/20 shadow-lg'
+                                                                            : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50'
+                                                                        }`}>
+                                                                        <span className="flex-shrink-0 group-hover/activity:scale-110 transition-transform">
+                                                                            {getActivityIcon((item as Activity).type || 'other')}
+                                                                        </span>
+                                                                        <span className="truncate max-w-[120px] sm:max-w-[200px]">{item.name}</span>
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            onToggleActivityLock(item.id);
+                                                                        }}
+                                                                        className={`p-1 rounded-md transition-colors ${item.isLocked
+                                                                            ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                                                                            : (item as Activity).imageUrl ? 'text-white/40 hover:text-white bg-white/10' : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
+                                                                            }`}
+                                                                        title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
+                                                                    >
+                                                                        {item.isLocked ? (
+                                                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                                                            </svg>
+                                                                        ) : (
+                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
+                                                                            </svg>
+                                                                        )}
+                                                                    </button>
+                                                                </div>
+                                                                <span className={`text-xs font-mono px-2 py-0.5 rounded-md border ${item.isLocked ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400' : (item as Activity).imageUrl ? 'bg-white/20 backdrop-blur-md border-white/20 text-white' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
+                                                                    {item.startTime}
+                                                                </span>
+                                                            </div>
+                                                            {item.location && (
+                                                                <a
+                                                                    href={`https://www.bing.com/maps?q=${encodeURIComponent(item.location.name)}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className={`flex items-center text-xs transition-colors mb-1 sm:mb-2 w-fit group/map ${(item as Activity).imageUrl ? 'text-white/70 hover:text-white' : 'text-gray-400 hover:text-primary-500'}`}
+                                                                >
+                                                                    <svg className="w-3 h-3 mr-1 group-hover/map:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                    </svg>
+                                                                    <span>{item.location.name}</span>
+                                                                    <svg className="w-2.5 h-2.5 ml-1 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                                    </svg>
+                                                                </a>
+                                                            )}
+                                                            {item.notes && (
+                                                                <p className={`text-xs italic p-2 rounded-lg border ${item.isLocked ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300' : (item as Activity).imageUrl ? 'bg-black/20 backdrop-blur-sm border-white/10 text-white/80' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300'}`}>
+                                                                    &quot;{item.notes}&quot;
+                                                                </p>
+                                                            )}
                                                         </div>
-                                                        {item.location && (
-                                                            <a
-                                                                href={`https://www.bing.com/maps?q=${encodeURIComponent(item.location.name)}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className={`flex items-center text-xs transition-colors mb-1 sm:mb-2 w-fit group/map ${(item as Activity).imageUrl ? 'text-white/70 hover:text-white' : 'text-gray-400 hover:text-primary-500'}`}
-                                                            >
-                                                                <svg className="w-3 h-3 mr-1 group-hover/map:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                </svg>
-                                                                <span>{item.location.name}</span>
-                                                                <svg className="w-2.5 h-2.5 ml-1 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                                </svg>
-                                                            </a>
-                                                        )}
-                                                        {item.notes && (
-                                                            <p className={`text-xs italic p-2 rounded-lg border ${item.isLocked ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300' : (item as Activity).imageUrl ? 'bg-black/20 backdrop-blur-sm border-white/10 text-white/80' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300'}`}>
-                                                                &quot;{item.notes}&quot;
-                                                            </p>
-                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
+                                        ) : null}
+                                    </SortableItem>
+                                ))}
+                            </SortableContext>
+                        </DndContext>
+                    ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-xl">
+                            <p className="text-gray-400 text-sm mb-2">Empty day</p>
+                            <div className="flex justify-center flex-wrap gap-3">
+                                <button onClick={onAddActivity} className="text-primary-500 text-sm font-medium hover:underline">+ Add activity</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Photos Section */}
+                {day.photos && day.photos.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-3">
+                            <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white">Photos</h4>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {day.photos.map((photo) => (
+                                <div key={photo.id} className="group/photo relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                    <Image
+                                        src={photo.url}
+                                        alt={photo.caption || 'Trip photo'}
+                                        fill
+                                        className="object-cover transition-transform duration-300 group-hover/photo:scale-110"
+                                        unoptimized
+                                    />
+                                    {photo.caption && (
+                                        <div className="absolute inset-x-0 bottom-0 p-2.5 bg-black/40 backdrop-blur-[2px]">
+                                            <p className="text-xs text-white line-clamp-2 leading-tight drop-shadow-sm font-medium">
+                                                {photo.caption}
+                                            </p>
                                         </div>
-                                    ) : null}
-                                </SortableItem>
+                                    )}
+                                    <button
+                                        onClick={() => onRemovePhoto?.(photo.id)}
+                                        className="absolute top-1 right-1 p-1 bg-black/40 hover:bg-black/60 text-white rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity duration-200 backdrop-blur-sm"
+                                        title="Remove photo"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
                             ))}
-                        </SortableContext>
-                    </DndContext>
-                ) : (
-                    <div className="text-center py-6 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-xl">
-                        <p className="text-gray-400 text-sm mb-2">Empty day</p>
-                        <div className="flex justify-center flex-wrap gap-3">
-                            <button onClick={onAddActivity} className="text-primary-500 text-sm font-medium hover:underline">+ Add activity</button>
                         </div>
                     </div>
                 )}
             </div>
-
-            {/* Photos Section */}
-            {day.photos && day.photos.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
-                    <div className="flex items-center gap-2 mb-3">
-                        <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">Photos</h4>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {day.photos.map((photo) => (
-                            <div key={photo.id} className="group/photo relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
-                                <Image
-                                    src={photo.url}
-                                    alt={photo.caption || 'Trip photo'}
-                                    fill
-                                    className="object-cover transition-transform duration-300 group-hover/photo:scale-110"
-                                    unoptimized
-                                />
-                                {photo.caption && (
-                                    <div className="absolute inset-x-0 bottom-0 p-2.5 bg-black/40 backdrop-blur-[2px]">
-                                        <p className="text-xs text-white line-clamp-2 leading-tight drop-shadow-sm font-medium">
-                                            {photo.caption}
-                                        </p>
-                                    </div>
-                                )}
-                                <button
-                                    onClick={() => onRemovePhoto?.(photo.id)}
-                                    className="absolute top-1 right-1 p-1 bg-black/40 hover:bg-black/60 text-white rounded-full opacity-0 group-hover/photo:opacity-100 transition-opacity duration-200 backdrop-blur-sm"
-                                    title="Remove photo"
-                                >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
