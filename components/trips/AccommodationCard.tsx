@@ -26,9 +26,9 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
                             alt={accommodation.name}
                             className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                         />
-                        {/* Multi-layered overlay for maximum contrast */}
-                        <div className="absolute inset-0 bg-black/40" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/20" />
+                        {/* Multi-layered overlay for maximum contrast - Lightened */}
+                        <div className="absolute inset-0 bg-black/20" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/20" />
                     </div>
                 )}
 

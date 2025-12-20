@@ -437,7 +437,7 @@ export default function DayCard({
                                                 <div className="flex-1 pb-2 sm:pb-4">
                                                     <div className={`relative overflow-hidden rounded-xl transition-all border group/activity ${item.isLocked
                                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
-                                                        : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md border-transparent hover:border-gray-100 dark:hover:border-gray-600 cursor-pointer'
+                                                        : 'bg-white dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg border-gray-100 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-800 cursor-pointer shadow-sm'
                                                         } ${(item as Activity).imageUrl ? 'min-h-[100px]' : 'p-2 sm:p-3'}`}
                                                         onClick={() => !item.isLocked && onEditActivity(item as Activity)}
                                                         onMouseEnter={() => (item as Activity).imageUrl && setHoveredImage((item as Activity).imageUrl!)}
@@ -451,9 +451,9 @@ export default function DayCard({
                                                                     alt={item.name}
                                                                     className="w-full h-full object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
                                                                 />
-                                                                {/* Multi-layered overlay for maximum contrast */}
-                                                                <div className="absolute inset-0 bg-black/40 group-hover/activity:bg-black/10 transition-colors duration-300" />
-                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/20 dark:from-black/95 group-hover/activity:from-black/40 transition-colors duration-300" />
+                                                                {/* Multi-layered overlay for maximum contrast - Lightened */}
+                                                                <div className="absolute inset-0 bg-black/20 group-hover/activity:bg-black/10 transition-colors duration-300" />
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-black/10 dark:from-black/90 group-hover/activity:from-black/30 transition-colors duration-300" />
                                                             </div>
                                                         )}
 
