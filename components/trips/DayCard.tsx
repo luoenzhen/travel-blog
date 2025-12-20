@@ -340,10 +340,10 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                 TODAY
                             </div>
                         )}
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        <h3 className={`text-lg font-bold transition-colors duration-500 ${hoveredImage ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
                             Day {day.dayNumber}
                         </h3>
-                        <p className="text-gray-500 dark:text-gray-400 font-medium">
+                        <p className={`font-medium transition-colors duration-500 ${hoveredImage ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
                             {format(dateObj, 'EEEE, MMM d')}
                         </p>
                     </div>
@@ -426,8 +426,8 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                                                     className="w-full h-full object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
                                                                 />
                                                                 {/* Multi-layered overlay for maximum contrast */}
-                                                                <div className="absolute inset-0 bg-black/40" />
-                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 dark:from-black/95" />
+                                                                <div className="absolute inset-0 bg-black/40 group-hover/activity:bg-black/10 transition-colors duration-300" />
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/20 dark:from-black/95 group-hover/activity:from-black/40 transition-colors duration-300" />
                                                             </div>
                                                         )}
 
