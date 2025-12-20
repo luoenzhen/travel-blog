@@ -446,104 +446,96 @@ export default function DayCard({
                                                 isCheckOut={item._type === 'stay-checkout'}
                                             />
                                         ) : item._type === 'activity' ? (
-                                            <div className="flex gap-4 group/activity">
-                                                <div className="flex flex-col items-center">
-                                                    <div className="w-2 h-2 bg-primary-500 rounded-full mt-2"></div>
-                                                    <div className="w-0.5 bg-gray-100 dark:bg-gray-700 flex-1 my-1 last:hidden"></div>
-                                                </div>
-                                                <div id={`activity-${item.id}`} className="flex-1 pb-2 sm:pb-4">
-                                                    <div className={`relative overflow-hidden rounded-xl transition-all border group/activity ${item.isLocked
-                                                        ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
-                                                        : 'bg-white dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg border-gray-100 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-800 cursor-pointer shadow-sm'
-                                                        } ${(item as Activity).imageUrl ? 'min-h-[100px]' : 'p-2 sm:p-3'}`}
-                                                        onClick={() => !item.isLocked && onEditActivity(item as Activity)}
-                                                        onMouseEnter={() => (item as Activity).imageUrl && setHoveredImage((item as Activity).imageUrl!)}
-                                                        onMouseLeave={() => setHoveredImage(null)}
-                                                    >
-                                                        {/* Smart Image Background */}
-                                                        {(item as Activity).imageUrl && (
-                                                            <div className="absolute inset-0 z-0">
-                                                                <img
-                                                                    src={(item as Activity).imageUrl}
-                                                                    alt={item.name}
-                                                                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
-                                                                />
-                                                                {/* Multi-layered overlay for maximum contrast - Lightened */}
-                                                                <div className="absolute inset-0 bg-black/20 group-hover/activity:bg-black/10 transition-colors duration-300" />
-                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-black/10 dark:from-black/90 group-hover/activity:from-black/30 transition-colors duration-300" />
-                                                            </div>
-                                                        )}
-
-                                                        <div className={`relative z-10 ${(item as Activity).imageUrl ? 'p-3 text-white' : ''}`}>
-                                                            <div className="flex justify-between items-start mb-0.5 sm:mb-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${item.isLocked
-                                                                        ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
-                                                                        : (item as Activity).imageUrl
-                                                                            ? 'text-white bg-blue-600/80 backdrop-blur-md border border-white/20 shadow-lg'
-                                                                            : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50'
-                                                                        }`}>
-                                                                        <span className="flex-shrink-0 group-hover/activity:scale-110 transition-transform">
-                                                                            {getActivityIcon((item as Activity).type || 'other')}
-                                                                        </span>
-                                                                        <span className="truncate max-w-[120px] sm:max-w-[200px]">{item.name}</span>
-                                                                    </span>
-                                                                    <div className={`flex items-center gap-1.5 text-[10px] sm:text-xs font-medium transition-colors ${(item as Activity).imageUrl ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                        </svg>
-                                                                        <span>{(item as Activity).startTime} - {(item as Activity).endTime}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        onToggleActivityLock(item.id);
-                                                                    }}
-                                                                    className={`p-1 rounded-md transition-colors ${item.isLocked
-                                                                        ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                                                                        : (item as Activity).imageUrl ? 'text-white/40 hover:text-white bg-white/10' : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
-                                                                        }`}
-                                                                    title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
-                                                                >
-                                                                    {item.isLocked ? (
-                                                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                                                        </svg>
-                                                                    ) : (
-                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
-                                                                        </svg>
-                                                                    )}
-                                                                </button>
-                                                            </div>
-                                                            <span className={`text-xs font-mono px-2 py-0.5 rounded-md border ${item.isLocked ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400' : (item as Activity).imageUrl ? 'bg-white/20 backdrop-blur-md border-white/20 text-white' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
-                                                                {item.startTime}
-                                                            </span>
-                                                            {item.location && (
-                                                                <a
-                                                                    href={`https://www.bing.com/maps?q=${encodeURIComponent(item.location.name)}`}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                    className={`flex items-center text-xs transition-colors mb-1 sm:mb-2 w-fit group/map ${(item as Activity).imageUrl ? 'text-white/70 hover:text-white' : 'text-gray-400 hover:text-primary-500'}`}
-                                                                >
-                                                                    <svg className="w-3 h-3 mr-1 group-hover/map:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                    </svg>
-                                                                    <span>{item.location.name}</span>
-                                                                    <svg className="w-2.5 h-2.5 ml-1 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                                    </svg>
-                                                                </a>
-                                                            )}
-                                                            {item.notes && (
-                                                                <p className={`text-xs italic p-2 rounded-lg border ${item.isLocked ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300' : (item as Activity).imageUrl ? 'bg-black/20 backdrop-blur-sm border-white/10 text-white/80' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300'}`}>
-                                                                    &quot;{item.notes}&quot;
-                                                                </p>
-                                                            )}
+                                            <div id={`activity-${item.id}`} className="w-full pb-2 sm:pb-4 group/activity">
+                                                <div className={`relative overflow-hidden rounded-xl transition-all border group/activity ${item.isLocked
+                                                    ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+                                                    : 'bg-white dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg border-gray-100 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-800 cursor-pointer shadow-sm'
+                                                    } ${(item as Activity).imageUrl ? 'min-h-[100px]' : 'p-2 sm:p-3'}`}
+                                                    onClick={() => !item.isLocked && onEditActivity(item as Activity)}
+                                                    onMouseEnter={() => (item as Activity).imageUrl && setHoveredImage((item as Activity).imageUrl!)}
+                                                    onMouseLeave={() => setHoveredImage(null)}
+                                                >
+                                                    {/* Smart Image Background */}
+                                                    {(item as Activity).imageUrl && (
+                                                        <div className="absolute inset-0 z-0">
+                                                            <img
+                                                                src={(item as Activity).imageUrl}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
+                                                            />
+                                                            {/* Multi-layered overlay for maximum contrast - Lightened */}
+                                                            <div className="absolute inset-0 bg-black/20 group-hover/activity:bg-black/10 transition-colors duration-300" />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-black/10 dark:from-black/90 group-hover/activity:from-black/30 transition-colors duration-300" />
                                                         </div>
+                                                    )}
+
+                                                    <div className={`relative z-10 ${(item as Activity).imageUrl ? 'p-3 text-white' : ''}`}>
+                                                        <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${item.isLocked
+                                                                    ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+                                                                    : (item as Activity).imageUrl
+                                                                        ? 'text-white bg-blue-600/80 backdrop-blur-md border border-white/20 shadow-lg'
+                                                                        : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50'
+                                                                    }`}>
+                                                                    <span className="flex-shrink-0 group-hover/activity:scale-110 transition-transform">
+                                                                        {getActivityIcon((item as Activity).type || 'other')}
+                                                                    </span>
+                                                                    <span className="truncate max-w-[120px] sm:max-w-[200px]">{item.name}</span>
+                                                                </span>
+                                                                <div className={`flex items-center gap-1.5 text-[10px] sm:text-xs font-medium transition-colors ${(item as Activity).imageUrl ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                                    <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    <span>{(item as Activity).startTime} - {(item as Activity).endTime}</span>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onToggleActivityLock(item.id);
+                                                                }}
+                                                                className={`p-1 rounded-md transition-colors ${item.isLocked
+                                                                    ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                                                                    : (item as Activity).imageUrl ? 'text-white/40 hover:text-white bg-white/10' : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
+                                                                    }`}
+                                                                title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
+                                                            >
+                                                                {item.isLocked ? (
+                                                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                ) : (
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        </div>
+
+                                                        {item.location && (
+                                                            <a
+                                                                href={`https://www.bing.com/maps?q=${encodeURIComponent(item.location.name)}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className={`flex items-center text-xs transition-colors mb-1 sm:mb-2 w-fit group/map ${(item as Activity).imageUrl ? 'text-white/70 hover:text-white' : 'text-gray-400 hover:text-primary-500'}`}
+                                                            >
+                                                                <svg className="w-3 h-3 mr-1 group-hover/map:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                                <span>{item.location.name}</span>
+                                                                <svg className="w-2.5 h-2.5 ml-1 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                                </svg>
+                                                            </a>
+                                                        )}
+                                                        {item.notes && (
+                                                            <p className={`text-xs italic p-2 rounded-lg border ${item.isLocked ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300' : (item as Activity).imageUrl ? 'bg-black/20 backdrop-blur-sm border-white/10 text-white/80' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300'}`}>
+                                                                &quot;{item.notes}&quot;
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
