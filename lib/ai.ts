@@ -30,7 +30,7 @@ export async function generateMagicItinerary(prompt: string, startDate: string, 
                         "type": "sightseeing | dining | shopping | transport | entertainment | other",
                         "startTime": "HH:mm AM/PM",
                         "endTime": "HH:mm AM/PM",
-                        "location": { "name": "Exact location name for map searching" },
+                        "location": { "name": "Venue Name, City, Country (full searchable address)" },
                         "notes": "Short description and why it fits the user interest",
                         "cost": 0,
                         "environment": "indoor | outdoor | both"
@@ -46,6 +46,9 @@ export async function generateMagicItinerary(prompt: string, startDate: string, 
     3. Optimize timings for a realistic flow.
     4. Categorize environments correctly for weather adaptation.
     5. The trip starts on ${startDate} and ends on ${endDate}.
+    6. ALWAYS use real-world, specific venue names and detailed addresses. FORBID generic placeholders like "City", "Local Restaurant", or "Nearby Park".
+    7. Each location MUST include: [Venue Name], [District/Neighborhood if applicable], [City], [Country] (e.g., "The Louvre Museum, Rue de Rivoli, 75001 Paris, France").
+    8. Every activity MUST have a non-empty "startTime" and "endTime" (e.g., "09:00 AM"). Ensure a logical progression throughout the day starting from around 9:00 AM.
     `;
 
     try {

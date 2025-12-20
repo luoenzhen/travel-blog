@@ -445,32 +445,38 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                                                         </span>
                                                                         <span className="truncate max-w-[120px] sm:max-w-[200px]">{item.name}</span>
                                                                     </span>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            onToggleActivityLock(item.id);
-                                                                        }}
-                                                                        className={`p-1 rounded-md transition-colors ${item.isLocked
-                                                                            ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                                                                            : (item as Activity).imageUrl ? 'text-white/40 hover:text-white bg-white/10' : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
-                                                                            }`}
-                                                                        title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
-                                                                    >
-                                                                        {item.isLocked ? (
-                                                                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                                                            </svg>
-                                                                        ) : (
-                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
-                                                                            </svg>
-                                                                        )}
-                                                                    </button>
+                                                                    <div className={`flex items-center gap-1.5 text-[10px] sm:text-xs font-medium transition-colors ${(item as Activity).imageUrl ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                                        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                        </svg>
+                                                                        <span>{(item as Activity).startTime} - {(item as Activity).endTime}</span>
+                                                                    </div>
                                                                 </div>
-                                                                <span className={`text-xs font-mono px-2 py-0.5 rounded-md border ${item.isLocked ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400' : (item as Activity).imageUrl ? 'bg-white/20 backdrop-blur-md border-white/20 text-white' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
-                                                                    {item.startTime}
-                                                                </span>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        onToggleActivityLock(item.id);
+                                                                    }}
+                                                                    className={`p-1 rounded-md transition-colors ${item.isLocked
+                                                                        ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                                                                        : (item as Activity).imageUrl ? 'text-white/40 hover:text-white bg-white/10' : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
+                                                                        }`}
+                                                                    title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
+                                                                >
+                                                                    {item.isLocked ? (
+                                                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                    ) : (
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
+                                                                        </svg>
+                                                                    )}
+                                                                </button>
                                                             </div>
+                                                            <span className={`text-xs font-mono px-2 py-0.5 rounded-md border ${item.isLocked ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400' : (item as Activity).imageUrl ? 'bg-white/20 backdrop-blur-md border-white/20 text-white' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
+                                                                {item.startTime}
+                                                            </span>
                                                             {item.location && (
                                                                 <a
                                                                     href={`https://www.bing.com/maps?q=${encodeURIComponent(item.location.name)}`}

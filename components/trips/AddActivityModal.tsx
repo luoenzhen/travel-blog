@@ -31,6 +31,20 @@ interface AddActivityModalProps {
 
 export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, dayDate, currencyCode = 'USD', editingActivity }: AddActivityModalProps) {
     const currencySymbol = CURRENCIES.find(c => c.code === currencyCode)?.symbol || '$';
+    const formatTimeForInput = (timeStr: string) => {
+        if (!timeStr) return '';
+        const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (!match) return timeStr;
+
+        const [, hours, minutes, modifier] = match;
+        let h = parseInt(hours, 10);
+        if (modifier) {
+            if (modifier.toUpperCase() === 'PM' && h < 12) h += 12;
+            if (modifier.toUpperCase() === 'AM' && h === 12) h = 0;
+        }
+        return `${h.toString().padStart(2, '0')}:${minutes}`;
+    };
+
     const {
         register,
         handleSubmit,
@@ -44,8 +58,8 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
             type: editingActivity.type || 'sightseeing',
             name: editingActivity.name,
             location: editingActivity.location.name,
-            startTime: editingActivity.startTime,
-            endTime: editingActivity.endTime,
+            startTime: formatTimeForInput(editingActivity.startTime),
+            endTime: formatTimeForInput(editingActivity.endTime),
             cost: editingActivity.cost,
             notes: editingActivity.notes || '',
             imageUrl: editingActivity.imageUrl || '',
@@ -100,14 +114,24 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
         setValue('imageUrl', autoUrl);
     };
 
+    const formatTimeForSave = (timeStr: string) => {
+        if (!timeStr) return '';
+        const [hours, minutes] = timeStr.split(':');
+        let h = parseInt(hours, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12; // the hour '0' should be '12'
+        return `${h.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+    };
+
     const onSubmit = async (data: ActivityForm) => {
         try {
             await onSave({
                 type: data.type,
                 name: data.name,
                 location: { name: data.location, latitude: 0, longitude: 0 }, // Placeholder for now
-                startTime: data.startTime,
-                endTime: data.endTime,
+                startTime: formatTimeForSave(data.startTime),
+                endTime: formatTimeForSave(data.endTime),
                 cost: data.cost || 0,
                 currency: currencyCode,
                 notes: data.notes,
