@@ -386,9 +386,9 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                 items={timelineItems.map(i => i._uniqueId)}
                                 strategy={verticalListSortingStrategy}
                             >
-                                {timelineItems.map((item) => (
+                                {timelineItems.map((item, index) => (
                                     <SortableItem
-                                        key={item._uniqueId}
+                                        key={item._uniqueId || `item-${index}`}
                                         id={item._uniqueId}
                                         disabled={item._type === 'activity' && item.isLocked}
                                     >
@@ -523,8 +523,8 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                             <h4 className="text-sm font-bold text-gray-900 dark:text-white">Photos</h4>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {day.photos.map((photo) => (
-                                <div key={photo.id} className="group/photo relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
+                            {day.photos.map((photo, index) => (
+                                <div key={photo.id || `photo-${index}`} className="group/photo relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
                                     <Image
                                         src={photo.url}
                                         alt={photo.caption || 'Trip photo'}

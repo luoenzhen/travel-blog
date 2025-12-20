@@ -173,9 +173,13 @@ export default function TripDetailsPage() {
                 });
 
                 if (existingDay) {
-                    // Update dayNumber if it changed
-                    if (existingDay.dayNumber !== i + 1) {
-                        newDays.push({ ...existingDay, dayNumber: i + 1 });
+                    // Update dayNumber if it changed, and ensure it has an ID
+                    if (existingDay.dayNumber !== i + 1 || !existingDay.id) {
+                        newDays.push({
+                            ...existingDay,
+                            dayNumber: i + 1,
+                            id: existingDay.id || crypto.randomUUID()
+                        });
                         hasChanges = true;
                     } else {
                         newDays.push(existingDay);
@@ -613,9 +617,9 @@ export default function TripDetailsPage() {
 
                         {processedDays && processedDays.length > 0 ? (
                             <div className="space-y-6">
-                                {processedDays.map((day) => (
+                                {processedDays.map((day, index) => (
                                     <DayCard
-                                        key={day.id}
+                                        key={day.id || `day-${index}`}
                                         day={day}
                                         onAddActivity={() => handleAddActivityClick(day.id)}
                                         onEditActivity={(activity) => handleEditActivityClick(day.id, activity)}
@@ -654,9 +658,9 @@ export default function TripDetailsPage() {
 
                             {activeTrip.transportation && activeTrip.transportation.length > 0 ? (
                                 <div className="space-y-3">
-                                    {activeTrip.transportation.map((transport) => (
+                                    {activeTrip.transportation.map((transport, index) => (
                                         <div
-                                            key={transport.id}
+                                            key={transport.id || `trans-${index}`}
                                             onClick={() => handleEditTransportClick(transport)}
                                             className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                         >
@@ -746,9 +750,9 @@ export default function TripDetailsPage() {
 
                             {activeTrip.stays && activeTrip.stays.length > 0 ? (
                                 <div className="space-y-4">
-                                    {activeTrip.stays.map((stay) => (
+                                    {activeTrip.stays.map((stay, index) => (
                                         <div
-                                            key={stay.id}
+                                            key={stay.id || `stay-${index}`}
                                             onClick={() => handleEditAccommodationClick(stay)}
                                             className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                         >

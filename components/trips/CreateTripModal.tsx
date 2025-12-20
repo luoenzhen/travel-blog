@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTripStore } from '@/store/tripStore';
 import { Timestamp } from 'firebase/firestore';
-import { Trip } from '@/types';
+import { Trip, TripBudget } from '@/types';
+import { generateMagicItinerary } from '@/lib/ai';
 
 import { CURRENCIES } from '@/lib/constants';
 
@@ -46,6 +47,8 @@ interface CreateTripModalProps {
 export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateTripModalProps) {
     const { addTrip, updateTripDetails } = useTripStore();
     const [loading, setLoading] = useState(false);
+    const [isAiMode, setIsAiMode] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -68,6 +71,7 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
         handleSubmit,
         reset,
         setValue,
+        watch,
         formState: { errors },
     } = useForm<TripForm>({
         resolver: zodResolver(tripSchema),
@@ -94,6 +98,27 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
                         currency: data.currency
                     }
                 });
+            } else if (isAiMode) {
+                if (!aiPrompt.trim()) {
+                    alert("Please describe your trip first!");
+                    setLoading(false);
+                    return;
+                }
+                const generatedTrip = await generateMagicItinerary(aiPrompt, data.startDate, data.endDate, data.title, data.destination);
+
+                await addTrip({
+                    ...generatedTrip,
+                    title: data.title || generatedTrip.title,
+                    destination: data.destination || generatedTrip.destination,
+                    startDate: Timestamp.fromDate(new Date(data.startDate)),
+                    endDate: Timestamp.fromDate(new Date(data.endDate)),
+                    budget: {
+                        totalBudget: 0,
+                        currency: data.currency,
+                        categories: { flights: 0, accommodation: 0, food: 0, activities: 0, shopping: 0, transportation: 0, other: 0 },
+                        actualSpending: { flights: 0, accommodation: 0, food: 0, activities: 0, shopping: 0, transportation: 0, other: 0 }
+                    }
+                } as Partial<Trip>);
             } else {
                 await addTrip({
                     title: data.title,
@@ -110,8 +135,9 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
             }
             reset();
             onClose();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to save trip', error);
+            alert(error.message || "Failed to generate itinerary. Check your API key.");
         } finally {
             setLoading(false);
         }
@@ -120,8 +146,8 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
     useEffect(() => {
         if (isOpen) {
             if (tripToEdit) {
-                const start = tripToEdit.startDate instanceof Timestamp ? tripToEdit.startDate.toDate() : new Date(tripToEdit.startDate);
-                const end = tripToEdit.endDate instanceof Timestamp ? tripToEdit.endDate.toDate() : new Date(tripToEdit.endDate);
+                const start = (tripToEdit.startDate as any)?.toDate ? (tripToEdit.startDate as any).toDate() : new Date(tripToEdit.startDate as any);
+                const end = (tripToEdit.endDate as any)?.toDate ? (tripToEdit.endDate as any).toDate() : new Date(tripToEdit.endDate as any);
 
                 const startStr = start.toISOString().split('T')[0];
                 const endStr = end.toISOString().split('T')[0];
@@ -156,58 +182,105 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
             <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl animate-slide-up overflow-hidden">
-                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{tripToEdit ? 'Edit Trip Details' : 'Plan New Trip'}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gradient-to-r from-primary-500/5 to-transparent">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+                            {tripToEdit ? 'Edit Trip' : (isAiMode ? '🤖 Magic Generator' : 'Plan New Trip')}
+                        </h2>
+                        {!tripToEdit && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {isAiMode ? 'AI will build your full itinerary' : 'Manually plan your journey'}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {!tripToEdit && (
+                            <button
+                                onClick={() => setIsAiMode(!isAiMode)}
+                                className={`p-2 rounded-xl transition-all duration-300 ${isAiMode
+                                    ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30 active:scale-95'
+                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30'
+                                    }`}
+                                title={isAiMode ? "Back to Manual Mode" : "Use AI Magic"}
+                            >
+                                <svg className={`w-5 h-5 ${isAiMode ? 'animate-pulse' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </button>
+                        )}
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Trip Title
-                        </label>
-                        <input
-                            {...register('title')}
-                            placeholder="e.g. Summer in Tokyo"
-                            className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none"
-                        />
-                        {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Destination
+                                Trip Title
                             </label>
                             <input
-                                {...register('destination')}
-                                placeholder="e.g. Tokyo, Japan"
+                                {...register('title')}
+                                placeholder="e.g. Summer in Tokyo"
                                 className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none"
                             />
-                            {errors.destination && <p className="text-red-500 text-sm mt-1">{errors.destination.message}</p>}
+                            {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Currency
-                            </label>
-                            <select
-                                {...register('currency')}
-                                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none appearance-none"
-                            >
-                                {CURRENCIES.map((c) => (
-                                    <option key={c.code} value={c.code}>
-                                        {c.code} ({c.symbol})
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.currency && <p className="text-red-500 text-sm mt-1">{errors.currency.message}</p>}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Destination
+                                </label>
+                                <input
+                                    {...register('destination')}
+                                    placeholder="e.g. Tokyo, Japan"
+                                    className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none"
+                                />
+                                {errors.destination && <p className="text-red-500 text-sm mt-1">{errors.destination.message}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Currency
+                                </label>
+                                <select
+                                    {...register('currency')}
+                                    className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none appearance-none"
+                                >
+                                    {CURRENCIES.map((c) => (
+                                        <option key={c.code} value={c.code}>
+                                            {c.code} ({c.symbol})
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.currency && <p className="text-red-500 text-sm mt-1">{errors.currency.message}</p>}
+                            </div>
                         </div>
                     </div>
+
+                    {isAiMode && !tripToEdit && (
+                        <div className="p-4 bg-primary-50/50 dark:bg-primary-900/10 rounded-2xl border border-primary-100 dark:border-primary-800/50 animate-fade-in shadow-inner">
+                            <label className="block text-sm font-bold text-primary-900 dark:text-primary-200 mb-2">
+                                AI Magic Prompt 🪄
+                            </label>
+                            <textarea
+                                value={aiPrompt}
+                                onChange={(e) => setAiPrompt(e.target.value)}
+                                placeholder="e.g. I love ramen and hidden bars, but I hate crowds. Focus on local experiences..."
+                                className="w-full h-32 px-4 py-3 rounded-xl border border-primary-200 dark:border-primary-800 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none text-sm leading-relaxed"
+                            />
+                            <div className="mt-2 flex items-center gap-2 text-[10px] text-primary-600 dark:text-primary-400">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                                AI will generate activities and smart images specialized for your trip destination.
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -291,9 +364,29 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
+                            className={`flex-1 px-4 py-2 rounded-xl font-bold transition-all duration-300 flex items-center justify-center gap-2 ${loading
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : (isAiMode ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg shadow-primary-500/20' : 'bg-primary-600 text-white hover:bg-primary-700')
+                                }`}
                         >
-                            {loading ? 'Saving...' : (tripToEdit ? 'Save Changes' : 'Create Trip')}
+                            {loading ? (
+                                <>
+                                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    {isAiMode ? 'Generating...' : 'Saving...'}
+                                </>
+                            ) : (
+                                <>
+                                    {isAiMode && (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                    )}
+                                    {tripToEdit ? 'Save Changes' : (isAiMode ? 'Magic Generate' : 'Create Trip')}
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>
