@@ -95,7 +95,7 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                     {/* Departure */}
                     <div className="flex-1 min-w-0 w-full text-center sm:text-left">
                         <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(transport.departureAirport + ' ' + (transport.departureAirportCode || ''))}`}
+                            href={`https://www.bing.com/maps?q=${encodeURIComponent(transport.departureAirportCode || transport.departureAirport)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
@@ -201,7 +201,7 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                     {/* Arrival */}
                     <div className="flex-1 min-w-0 w-full text-center sm:text-right">
                         <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(transport.arrivalAirport + ' ' + (transport.arrivalAirportCode || ''))}`}
+                            href={`https://www.bing.com/maps?q=${encodeURIComponent(transport.arrivalAirportCode || transport.arrivalAirport)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}

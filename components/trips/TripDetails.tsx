@@ -667,7 +667,7 @@ export default function TripDetailsPage() {
                                                 </div>
                                                 <div className="text-xs font-mono text-gray-400 flex items-center gap-1">
                                                     <a
-                                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(transport.departureAirport + ' ' + (transport.departureAirportCode || ''))}`}
+                                                        href={`https://www.bing.com/maps?q=${encodeURIComponent(transport.departureAirportCode || transport.departureAirport)}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         onClick={(e) => e.stopPropagation()}
@@ -677,7 +677,7 @@ export default function TripDetailsPage() {
                                                     </a>
                                                     <span>→</span>
                                                     <a
-                                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(transport.arrivalAirport + ' ' + (transport.arrivalAirportCode || ''))}`}
+                                                        href={`https://www.bing.com/maps?q=${encodeURIComponent(transport.arrivalAirportCode || transport.arrivalAirport)}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         onClick={(e) => e.stopPropagation()}
@@ -742,7 +742,7 @@ export default function TripDetailsPage() {
                                             <div className="text-xs text-gray-500 space-y-0.5 mt-1">
                                                 <div>{stay.checkInDate} - {stay.checkOutDate}</div>
                                                 <a
-                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stay.address + ' ' + stay.name)}`}
+                                                    href={`https://www.bing.com/maps?q=${encodeURIComponent(stay.address + ' ' + stay.name)}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     onClick={(e) => e.stopPropagation()}

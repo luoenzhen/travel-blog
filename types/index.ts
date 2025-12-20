@@ -275,6 +275,7 @@ export interface AccommodationDetails {
 
     // Customization
     color?: string;
+    imageUrl?: string;
 }
 
 // Activity Types
@@ -314,6 +315,7 @@ export interface Activity {
 
     // Lock status
     isLocked?: boolean;
+    imageUrl?: string;
 }
 
 // Dining Plan

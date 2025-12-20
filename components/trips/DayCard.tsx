@@ -329,67 +329,90 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                                 <div className="w-0.5 bg-gray-100 dark:bg-gray-700 flex-1 my-1 last:hidden"></div>
                                             </div>
                                             <div className="flex-1 pb-2 sm:pb-4">
-                                                <div className={`rounded-xl p-2 sm:p-3 transition-all border ${item.isLocked
+                                                <div className={`relative overflow-hidden rounded-xl transition-all border ${item.isLocked
                                                     ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
                                                     : 'bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-md border-transparent hover:border-gray-100 dark:hover:border-gray-600 cursor-pointer'
-                                                    }`}
+                                                    } ${(item as Activity).imageUrl ? 'min-h-[100px]' : 'p-2 sm:p-3'}`}
                                                     onClick={() => !item.isLocked && onEditActivity(item as Activity)}
                                                 >
-                                                    <div className="flex justify-between items-start mb-0.5 sm:mb-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`text-sm font-bold ${item.isLocked ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-200'} flex items-center gap-1.5`}>
-                                                                {getActivityIcon((item as Activity).type || 'other')}
-                                                                {item.name}
-                                                            </span>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    onToggleActivityLock(item.id);
-                                                                }}
-                                                                className={`p-1 rounded-md transition-colors ${item.isLocked
-                                                                    ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                                                                    : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
-                                                                    }`}
-                                                                title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
-                                                            >
-                                                                {item.isLocked ? (
-                                                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                ) : (
-                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
-                                                                    </svg>
-                                                                )}
-                                                            </button>
+                                                    {/* Smart Image Background */}
+                                                    {(item as Activity).imageUrl && (
+                                                        <div className="absolute inset-0 z-0">
+                                                            <img
+                                                                src={(item as Activity).imageUrl}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
+                                                            />
+                                                            {/* Multi-layered overlay for maximum contrast */}
+                                                            <div className="absolute inset-0 bg-black/40" />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/30 dark:from-black/95" />
                                                         </div>
-                                                        <span className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-md border border-gray-100 dark:border-gray-600">
-                                                            {item.startTime}
-                                                        </span>
+                                                    )}
+
+                                                    <div className={`relative z-10 ${(item as Activity).imageUrl ? 'p-3 text-white' : ''}`}>
+                                                        <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all ${item.isLocked
+                                                                    ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'
+                                                                    : (item as Activity).imageUrl
+                                                                        ? 'text-white bg-blue-600/80 backdrop-blur-md border border-white/20 shadow-lg'
+                                                                        : 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50'
+                                                                    }`}>
+                                                                    <span className="flex-shrink-0 group-hover/activity:scale-110 transition-transform">
+                                                                        {getActivityIcon((item as Activity).type || 'other')}
+                                                                    </span>
+                                                                    <span className="truncate max-w-[120px] sm:max-w-[200px]">{item.name}</span>
+                                                                </span>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        onToggleActivityLock(item.id);
+                                                                    }}
+                                                                    className={`p-1 rounded-md transition-colors ${item.isLocked
+                                                                        ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                                                                        : (item as Activity).imageUrl ? 'text-white/40 hover:text-white bg-white/10' : 'text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400'
+                                                                        }`}
+                                                                    title={item.isLocked ? "Unlock Activity" : "Lock Activity"}
+                                                                >
+                                                                    {item.isLocked ? (
+                                                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                    ) : (
+                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0v4M5 11h14a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2z" />
+                                                                        </svg>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+                                                            <span className={`text-xs font-mono px-2 py-0.5 rounded-md border ${item.isLocked ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400' : (item as Activity).imageUrl ? 'bg-white/20 backdrop-blur-md border-white/20 text-white' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-600 text-gray-500 dark:text-gray-400'}`}>
+                                                                {item.startTime}
+                                                            </span>
+                                                        </div>
+                                                        {item.location && (
+                                                            <a
+                                                                href={`https://www.bing.com/maps?q=${encodeURIComponent(item.location.name)}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className={`flex items-center text-xs transition-colors mb-1 sm:mb-2 w-fit group/map ${(item as Activity).imageUrl ? 'text-white/70 hover:text-white' : 'text-gray-400 hover:text-primary-500'}`}
+                                                            >
+                                                                <svg className="w-3 h-3 mr-1 group-hover/map:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                                <span>{item.location.name}</span>
+                                                                <svg className="w-2.5 h-2.5 ml-1 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                                </svg>
+                                                            </a>
+                                                        )}
+                                                        {item.notes && (
+                                                            <p className={`text-xs italic p-2 rounded-lg border ${item.isLocked ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300' : (item as Activity).imageUrl ? 'bg-black/20 backdrop-blur-sm border-white/10 text-white/80' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300'}`}>
+                                                                &quot;{item.notes}&quot;
+                                                            </p>
+                                                        )}
                                                     </div>
-                                                    {item.location && (
-                                                        <a
-                                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location.name)}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            className="flex items-center text-xs text-gray-400 hover:text-primary-500 transition-colors mb-1 sm:mb-2 w-fit group/map"
-                                                        >
-                                                            <svg className="w-3 h-3 mr-1 group-hover/map:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
-                                                            <span>{item.location.name}</span>
-                                                            <svg className="w-2.5 h-2.5 ml-1 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                            </svg>
-                                                        </a>
-                                                    )}
-                                                    {item.notes && (
-                                                        <p className="text-xs text-gray-600 dark:text-gray-300 italic bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg border border-yellow-100 dark:border-yellow-900/30">
-                                                            &quot;{item.notes}&quot;
-                                                        </p>
-                                                    )}
                                                 </div>
                                             </div>
                                         </div>

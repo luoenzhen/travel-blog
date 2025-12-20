@@ -19,6 +19,7 @@ const accommodationSchema = z.object({
     bookingConfirmation: z.string().optional(),
     notes: z.string().optional(),
     color: z.string().optional(),
+    imageUrl: z.string().optional(),
 }).refine((data) => {
     const start = new Date(`${data.checkInDate}T${data.checkInTime}`);
     const end = new Date(`${data.checkOutDate}T${data.checkOutTime}`);
@@ -47,6 +48,8 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
         register,
         handleSubmit,
         reset,
+        watch,
+        setValue,
         formState: { errors, isSubmitting },
     } = useForm<AccommodationForm>({
         resolver: zodResolver(accommodationSchema),
@@ -57,9 +60,30 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
             checkInDate: '',
             checkOutDate: '',
             cost: 0,
-            color: '#ffffff' // Default white
+            color: '#ffffff',
+            imageUrl: ''
         }
     });
+
+    const propertyName = watch('name');
+    const propertyAddress = watch('address');
+    const selectedImageUrl = watch('imageUrl');
+    const accommodationType = watch('type');
+
+    const handleAutoFindImage = () => {
+        if (!propertyName) return;
+
+        // List of variations to get different types of images on each click
+        const variations = ['exterior hotel', 'lobby interior', 'scenic view', 'aerial hotel', 'hotel building', 'modern architecture'];
+        const randomVariation = variations[Math.floor(Math.random() * variations.length)];
+        const randomSalt = Math.floor(Math.random() * 1000);
+
+        // Putting the variation at the front and adding a salt to the URL string itself
+        const query = `${randomVariation} ${propertyName} ${propertyAddress} ${accommodationType}`;
+        const autoUrl = `https://www.bing.com/th?q=${query}&w=1200&h=600&c=4&rs=1&qlt=90&cdv=1&pid=16.1&r=${randomSalt}`;
+
+        setValue('imageUrl', autoUrl);
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -76,7 +100,8 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
                     address: initialData.address,
                     notes: initialData.notes || '',
                     bookingConfirmation: initialData.bookingConfirmation || '',
-                    color: initialData.color || '#ffffff'
+                    color: initialData.color || '#ffffff',
+                    imageUrl: initialData.imageUrl || ''
                 });
             } else if (dayDateIso) {
                 // Creating new stay
@@ -94,7 +119,8 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
                     address: '',
                     notes: '',
                     bookingConfirmation: '', // Ensure clean state
-                    color: '#ffffff'
+                    color: '#ffffff',
+                    imageUrl: ''
                 });
             }
         }
@@ -117,7 +143,8 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
                 bookingConfirmation: data.bookingConfirmation || '',
                 amenities: [],
                 notes: data.notes,
-                color: data.color || '#ffffff'
+                color: data.color || '#ffffff',
+                imageUrl: data.imageUrl || ''
             });
             reset();
             onClose();
@@ -186,8 +213,44 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Property Name</label>
-                        <input {...register('name')} placeholder="e.g. Grand Hotel" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                        <div className="flex gap-2">
+                            <input {...register('name')} placeholder="e.g. Grand Hotel" className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                            <button
+                                type="button"
+                                onClick={handleAutoFindImage}
+                                disabled={!propertyName}
+                                className="px-3 py-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl border border-purple-100 dark:border-purple-800 hover:bg-purple-100 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Auto-find matching image"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-xs font-bold">Smart Image</span>
+                            </button>
+
+                        </div>
                         {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+                    </div>
+
+                    {selectedImageUrl && (
+                        <div className="relative group rounded-xl overflow-hidden aspect-[21/9] border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
+                            <img src={selectedImageUrl} alt="Preview" className="w-full h-full object-cover object-center" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    type="button"
+                                    onClick={() => setValue('imageUrl', '')}
+                                    className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="hidden">
+                        <input {...register('imageUrl')} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
