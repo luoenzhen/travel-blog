@@ -34,6 +34,8 @@ interface DayCardProps {
     onToggleActivityLock: (activityId: string) => void;
     onAddPhoto?: () => void;
     onRemovePhoto?: (photoId: string) => void;
+    onUndo?: () => void;
+    showUndo?: boolean;
 }
 
 function SortableItem({ id, children, disabled }: { id: string; children: React.ReactNode; disabled?: boolean }) {
@@ -77,9 +79,19 @@ function SortableItem({ id, children, disabled }: { id: string; children: React.
     );
 }
 
-export default function DayCard({ day, onAddActivity, onEditActivity, onToggleActivityLock, onAddPhoto, onRemovePhoto }: DayCardProps) {
+export default function DayCard({
+    day,
+    onAddActivity,
+    onEditActivity,
+    onToggleActivityLock,
+    onAddPhoto,
+    onRemovePhoto,
+    onUndo,
+    showUndo
+}: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const [hoveredImage, setHoveredImage] = useState<string | null>(null);
+
     const dateObj = (day.date as any)?.toDate ? (day.date as any).toDate() :
         (day.date as any)?.seconds ? new Date((day.date as any).seconds * 1000) :
             new Date(day.date as any);
@@ -350,6 +362,7 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                     <div className="flex items-center gap-3">
                         {renderWeather()}
                         <div className="flex gap-2">
+
                             <button
                                 onClick={onAddActivity}
                                 className="p-2 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
@@ -369,6 +382,19 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             </button>
+
+                            {showUndo && (
+                                <button
+                                    onClick={onUndo}
+                                    className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-lg border border-amber-100 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all flex items-center gap-1.5 animate-in fade-in slide-in-from-right-2"
+                                    title="Undo Magic Generation"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                    </svg>
+                                    Undo AI Plan
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
