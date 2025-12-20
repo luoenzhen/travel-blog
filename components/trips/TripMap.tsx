@@ -13,9 +13,7 @@ const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ss
 const Polyline = dynamic(() => import('react-leaflet').then(mod => mod.Polyline), { ssr: false });
 
 // For useMap, we need to access it within a component that is a child of MapContainer
-// We'll import the whole module dynamically and pick what we need
-let useMapHook: any;
-import('react-leaflet').then(mod => { useMapHook = mod.useMap; });
+import { useMap } from 'react-leaflet';
 
 interface TripMapProps {
     activities: Activity[];
@@ -28,20 +26,12 @@ interface TripMapProps {
 }
 
 // Internal component to handle view changes
-function MapController({ bounds }: { bounds: any }) {
-    const [useMap, setUseMap] = useState<any>(null);
+function MapController({ bounds }: { bounds: number[][] }) {
+    const map = useMap();
 
     useEffect(() => {
-        import('react-leaflet').then(mod => {
-            setUseMap(() => mod.useMap);
-        });
-    }, []);
-
-    const map = useMap ? useMap() : null;
-
-    useEffect(() => {
-        if (map && bounds && bounds.length > 0) {
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+        if (map && bounds && bounds.length > 0 && bounds[0][0] !== 0) {
+            map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [50, 50], maxZoom: 15 });
         }
     }, [bounds, map]);
     return null;
@@ -50,21 +40,19 @@ function MapController({ bounds }: { bounds: any }) {
 export default function TripMap({
     activities,
     accommodations,
-    transportation,
     activeDayId,
     focusedId,
     onMarkerClick,
     className = "h-full w-full"
 }: TripMapProps) {
     const [isMounted, setIsMounted] = useState(false);
-    const [L, setL] = useState<any>(null);
+    const [L, setL] = useState<typeof import('leaflet') | null>(null);
 
     useEffect(() => {
         setIsMounted(true);
         import('leaflet').then(leaflet => {
             setL(leaflet);
-            // Fix Leaflet icon issue
-            // @ts-ignore
+            // @ts-expect-error - Leaflet icon internals
             delete leaflet.Icon.Default.prototype._getIconUrl;
             leaflet.Icon.Default.mergeOptions({
                 iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -84,11 +72,11 @@ export default function TripMap({
 
     // Filter pins by active day if applicable
     const activeActivities = activeDayId
-        ? activities.filter(a => (a as any).dayId === activeDayId)
+        ? activities.filter(a => (a as Activity & { dayId: string }).dayId === activeDayId)
         : activities;
 
     const activeStays = activeDayId
-        ? accommodations.filter(s => (s as any).dayId === activeDayId)
+        ? accommodations.filter(s => (s as AccommodationDetails & { dayId: string }).dayId === activeDayId)
         : accommodations;
 
     const pins = [
@@ -156,14 +144,12 @@ export default function TripMap({
     return (
         <div className={className}>
             <MapContainer
-                // @ts-ignore
                 center={center as [number, number]}
                 zoom={13}
                 scrollWheelZoom={true}
                 className="h-full w-full rounded-2xl overflow-hidden shadow-inner border border-gray-200 dark:border-gray-700"
             >
                 <TileLayer
-                    // @ts-ignore
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
@@ -171,7 +157,6 @@ export default function TripMap({
                 {pins.map(pin => (
                     <Marker
                         key={pin.id}
-                        // @ts-ignore
                         position={[pin.lat, pin.lng]}
                         icon={getIcon(pin.type, pin.category, focusedId === pin.id)}
                         eventHandlers={{
@@ -187,8 +172,7 @@ export default function TripMap({
 
                 {routeCoordinates.length > 1 && (
                     <Polyline
-                        // @ts-ignore
-                        positions={routeCoordinates}
+                        positions={routeCoordinates as [number, number][]}
                         color="#6366f1"
                         weight={3}
                         dashArray="10, 10"

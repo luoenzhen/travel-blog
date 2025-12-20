@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTripStore } from '@/store/tripStore';
 import { Timestamp } from 'firebase/firestore';
-import { Trip, TripBudget } from '@/types';
+import { Trip } from '@/types';
 import { generateMagicItinerary } from '@/lib/ai';
 
 import { CURRENCIES } from '@/lib/constants';
@@ -71,7 +71,6 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
         handleSubmit,
         reset,
         setValue,
-        watch,
         formState: { errors },
     } = useForm<TripForm>({
         resolver: zodResolver(tripSchema),
@@ -135,9 +134,10 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
             }
             reset();
             onClose();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Failed to save trip', error);
-            alert(error.message || "Failed to generate itinerary. Check your API key.");
+            const errorMessage = error instanceof Error ? error.message : "Failed to generate itinerary. Check your API key.";
+            alert(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -146,8 +146,8 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
     useEffect(() => {
         if (isOpen) {
             if (tripToEdit) {
-                const start = (tripToEdit.startDate as any)?.toDate ? (tripToEdit.startDate as any).toDate() : new Date(tripToEdit.startDate as any);
-                const end = (tripToEdit.endDate as any)?.toDate ? (tripToEdit.endDate as any).toDate() : new Date(tripToEdit.endDate as any);
+                const start = (tripToEdit.startDate as Timestamp | { toDate?: () => Date }).toDate ? (tripToEdit.startDate as Timestamp).toDate() : new Date(tripToEdit.startDate as unknown as string);
+                const end = (tripToEdit.endDate as Timestamp | { toDate?: () => Date }).toDate ? (tripToEdit.endDate as Timestamp).toDate() : new Date(tripToEdit.endDate as unknown as string);
 
                 const startStr = start.toISOString().split('T')[0];
                 const endStr = end.toISOString().split('T')[0];

@@ -15,12 +15,21 @@ export async function fetchWeatherForDestination(destination: string, dates: str
         const data = await response.json();
         const weatherMap: Record<string, WeatherData> = {};
 
+        interface WttrDay {
+            date: string;
+            hourly: Array<{
+                time: string;
+                tempC: string;
+                weatherDesc: Array<{ value: string }>;
+            }>;
+        }
+
         // data.weather contains daily forecasts
-        data.weather.forEach((day: any) => {
+        (data.weather as WttrDay[]).forEach((day) => {
             const date = day.date; // YYYY-MM-DD
             if (dates.includes(date)) {
                 // Get noon weather if possible, otherwise first hour
-                const noonWeather = day.hourly.find((h: any) => h.time === "1200") || day.hourly[0];
+                const noonWeather = day.hourly.find((h) => h.time === "1200") || day.hourly[0];
 
                 weatherMap[date] = {
                     temp: parseInt(noonWeather.tempC),

@@ -94,9 +94,11 @@ export default function DayCard({
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const [hoveredImage, setHoveredImage] = useState<string | null>(null);
 
-    const dateObj = (day.date as any)?.toDate ? (day.date as any).toDate() :
-        (day.date as any)?.seconds ? new Date((day.date as any).seconds * 1000) :
-            new Date(day.date as any);
+    const dateObj = (day.date as Timestamp | { toDate?: () => Date }).toDate
+        ? (day.date as Timestamp).toDate()
+        : (day.date as unknown as { seconds: number }).seconds
+            ? new Date((day.date as unknown as { seconds: number }).seconds * 1000)
+            : new Date(day.date as unknown as string);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {

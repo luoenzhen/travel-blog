@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Trip, DayPlan, Activity, AccommodationDetails } from "@/types";
+import { Trip, Activity, AccommodationDetails } from "@/types";
 import { Timestamp } from "firebase/firestore";
 
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
@@ -69,11 +69,18 @@ export async function generateMagicItinerary(prompt: string, startDate: string, 
 
         // Convert dates to Timestamps
         if (data.days) {
-            data.days = data.days.map((day: any) => ({
+            interface TempDay {
+                date: string;
+                activities: Array<{
+                    name: string;
+                    location: { name: string };
+                }>;
+            }
+            data.days = (data.days as TempDay[]).map((day) => ({
                 ...day,
                 id: Math.random().toString(36).substring(2, 11),
                 date: Timestamp.fromDate(new Date(day.date)),
-                activities: day.activities.map((act: any) => {
+                activities: day.activities.map((act) => {
                     const randomSalt = Math.floor(Math.random() * 1000);
                     const query = encodeURIComponent(`professional photography ${act.name} ${act.location?.name || ''} scenery`);
                     return {
@@ -99,7 +106,6 @@ export async function generateMagicDayActivities(
     date: string,
     existingActivities: Activity[],
     accommodation?: AccommodationDetails,
-    userPrompt: string = "",
     languageContext: string = ""
 ): Promise<Activity[]> {
     if (!apiKey) {
@@ -156,7 +162,12 @@ export async function generateMagicDayActivities(
 
         const activities = JSON.parse(jsonMatch[0]);
 
-        return activities.map((act: any) => {
+        const activitiesArr = activities as Array<{
+            name: string;
+            location: { name: string };
+        }>;
+
+        return activitiesArr.map((act) => {
             const randomSalt = Math.floor(Math.random() * 1000);
             const query = encodeURIComponent(`professional photography ${act.name} ${act.location?.name || ''} scenery`);
             return {
@@ -165,7 +176,7 @@ export async function generateMagicDayActivities(
                 currency: 'USD',
                 photos: [],
                 imageUrl: `https://www.bing.com/th?q=${query}&w=1200&h=600&c=4&rs=1&qlt=90&cdv=1&pid=16.1&r=${randomSalt}`
-            };
+            } as unknown as Activity;
         });
     } catch (error) {
         console.error("Single Day AI Generation Error:", error);

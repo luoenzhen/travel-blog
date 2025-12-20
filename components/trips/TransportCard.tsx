@@ -1,6 +1,7 @@
 'use client';
 
 import { TransportationDetails } from '@/types';
+import { Timestamp } from 'firebase/firestore';
 
 
 interface TransportCardProps {
@@ -119,14 +120,14 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                             {/* Animation Container */}
                             <div className="absolute inset-x-0 -inset-y-4 overflow-hidden pointer-events-none rounded-full">
                                 {(() => {
-                                    const getAsDate = (ts: any): Date | null => {
+                                    const getAsDate = (ts: Timestamp | { seconds: number } | string | Date | null | undefined): Date | null => {
                                         if (!ts) return null;
-                                        if (ts && typeof ts === 'object' && 'seconds' in ts) {
-                                            return new Date(ts.seconds * 1000);
-                                        } else if (ts && typeof ts === 'object' && 'toDate' in ts && typeof ts.toDate === 'function') {
-                                            return ts.toDate();
+                                        if (typeof ts === 'object' && 'seconds' in ts) {
+                                            return new Date((ts as { seconds: number }).seconds * 1000);
+                                        } else if (typeof ts === 'object' && 'toDate' in ts && typeof (ts as { toDate: () => Date }).toDate === 'function') {
+                                            return (ts as { toDate: () => Date }).toDate();
                                         } else {
-                                            const date = new Date(ts);
+                                            const date = new Date(ts as string | Date);
                                             return isNaN(date.getTime()) ? null : date;
                                         }
                                     };

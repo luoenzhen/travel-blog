@@ -155,7 +155,6 @@ export default function TripDetailsPage() {
 
                 // Sync Transportation (Project global transportation onto day if they match date)
                 if (activeTrip.transportation && activeTrip.transportation.length > 0) {
-                    const dayDateStr = format(dayDate, 'yyyy-MM-dd');
                     newDay.transportation = activeTrip.transportation.filter(f => {
                         // departureTime is timestamp
                         let fDate: Date;
@@ -224,7 +223,7 @@ export default function TripDetailsPage() {
         if (tripId) {
             loadTrip();
         }
-    }, [tripId, getTrip, initializeDays]);
+    }, [tripId, getTrip, initializeDays, updateWeather]);
 
     // Repair Days Side Effect
     // If activeTrip is loaded but has missing days (due to legacy bugs or edits), fix them.
@@ -429,7 +428,6 @@ export default function TripDetailsPage() {
                 dateStr,
                 dayActivitiesArr,
                 accommodation,
-                "",
                 languageContext
             );
 
@@ -483,7 +481,7 @@ export default function TripDetailsPage() {
 
         // Start with accommodation if exists, otherwise first activity
         let currentPos = day.accommodation?.location || activities[0].location;
-        let remaining = [...activities];
+        const remaining = [...activities];
 
         // Basic nearest-neighbor route optimization (Greedy Traveling Salesman)
         while (remaining.length > 0) {
@@ -863,13 +861,14 @@ export default function TripDetailsPage() {
 
                                         try {
                                             const tripToExport = JSON.parse(JSON.stringify(activeTrip));
-                                            const serialize = (obj: any): void => {
+                                            const serialize = (obj: unknown): void => {
                                                 if (obj && typeof obj === 'object') {
-                                                    for (const key in obj) {
-                                                        const val = obj[key];
-                                                        if (val && typeof val === 'object' && 'seconds' in val && 'nanoseconds' in val) {
-                                                            obj[key] = new Date((val as { seconds: number }).seconds * 1000).toISOString();
-                                                        } else if (typeof val === 'object') {
+                                                    const target = obj as Record<string, unknown>;
+                                                    for (const key in target) {
+                                                        const val = target[key];
+                                                        if (val && typeof val === 'object' && val !== null && 'seconds' in val && 'nanoseconds' in val) {
+                                                            target[key] = new Date((val as { seconds: number }).seconds * 1000).toISOString();
+                                                        } else if (typeof val === 'object' && val !== null) {
                                                             serialize(val);
                                                         }
                                                     }
@@ -892,9 +891,10 @@ export default function TripDetailsPage() {
                                                 document.body.removeChild(a);
                                                 window.URL.revokeObjectURL(url);
                                             }, 100);
-                                        } catch (err: any) {
+                                        } catch (err: unknown) {
                                             console.error('Export error:', err);
-                                            alert('Error creating export file: ' + err.message);
+                                            const errorMessage = err instanceof Error ? err.message : 'Unknown error during export';
+                                            alert('Error creating export file: ' + errorMessage);
                                         }
                                     }}
                                     className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
