@@ -13,7 +13,7 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
     // Actually, logic from parent decides. If both false, it's a middle day.
     const isMiddleDay = !isCheckIn && !isCheckOut;
     return (
-        <div className="pb-2 sm:pb-4 group">
+        <div id={`stay-${accommodation.id}`} className="pb-2 sm:pb-4 group">
             <div
                 className="relative overflow-hidden rounded-xl border border-purple-100 dark:border-purple-900/30 shadow-sm hover:shadow-md transition-all min-h-[120px]"
                 style={{ backgroundColor: accommodation.color || '#ffffff' }}

@@ -36,6 +36,7 @@ interface DayCardProps {
     onRemovePhoto?: (photoId: string) => void;
     onUndo?: () => void;
     showUndo?: boolean;
+    onOptimize?: () => void;
 }
 
 function SortableItem({ id, children, disabled }: { id: string; children: React.ReactNode; disabled?: boolean }) {
@@ -87,7 +88,8 @@ export default function DayCard({
     onAddPhoto,
     onRemovePhoto,
     onUndo,
-    showUndo
+    showUndo,
+    onOptimize
 }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const [hoveredImage, setHoveredImage] = useState<string | null>(null);
@@ -395,6 +397,19 @@ export default function DayCard({
                                     Undo AI Plan
                                 </button>
                             )}
+
+                            {(day.activities?.length || 0) > 1 && (
+                                <button
+                                    onClick={onOptimize}
+                                    className="px-3 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-xs font-bold rounded-lg border border-primary-100 dark:border-primary-800/50 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-all flex items-center gap-1.5"
+                                    title="Optimize travel route"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    Optimize Route
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -434,7 +449,7 @@ export default function DayCard({
                                                     <div className="w-2 h-2 bg-primary-500 rounded-full mt-2"></div>
                                                     <div className="w-0.5 bg-gray-100 dark:bg-gray-700 flex-1 my-1 last:hidden"></div>
                                                 </div>
-                                                <div className="flex-1 pb-2 sm:pb-4">
+                                                <div id={`activity-${item.id}`} className="flex-1 pb-2 sm:pb-4">
                                                     <div className={`relative overflow-hidden rounded-xl transition-all border group/activity ${item.isLocked
                                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
                                                         : 'bg-white dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg border-gray-100 dark:border-gray-700 hover:border-primary-200 dark:hover:border-primary-800 cursor-pointer shadow-sm'

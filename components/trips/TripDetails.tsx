@@ -13,7 +13,10 @@ import CreateTripModal from '@/components/trips/CreateTripModal';
 import BudgetModal from '@/components/trips/BudgetModal';
 import AddPhotoModal from '@/components/trips/AddPhotoModal';
 import { Activity, TransportationDetails, AccommodationDetails, DayPlan, TripBudget, Media } from '@/types';
-import { generateMagicDayActivities } from '@/lib/ai';
+import { generateMagicDayActivities, geocodeLocations } from '@/lib/ai';
+import dynamic from 'next/dynamic';
+
+const TripMap = dynamic(() => import('./TripMap'), { ssr: false });
 import {
     DndContext,
     useDraggable,
@@ -101,6 +104,8 @@ export default function TripDetailsPage() {
     const [editingActivity, setEditingActivity] = useState<Activity | undefined>(undefined);
     const [isMagicGenerating, setIsMagicGenerating] = useState(false);
     const [lastGeneratedIds, setLastGeneratedIds] = useState<Record<string, string[]>>({});
+    const [showMap, setShowMap] = useState(true);
+    const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null);
 
     const sensorsMagic = useSensors(
         useSensor(PointerSensor, {
@@ -335,6 +340,14 @@ export default function TripDetailsPage() {
     const handleSaveActivity = async (activityData: Partial<Activity>) => {
         if (!activeTrip || !activeDayId) return;
 
+        // Auto-geocode if missing
+        if (activityData.location && (!activityData.location.latitude || !activityData.location.longitude)) {
+            const coords = await geocodeLocations([activityData.location.name]);
+            if (coords[activityData.location.name]) {
+                activityData.location = { ...activityData.location, ...coords[activityData.location.name] };
+            }
+        }
+
         if (editingActivity) {
             const updatedActivity = { ...editingActivity, ...activityData } as Activity;
             await useTripStore.getState().updateActivity(activeTrip.id, activeDayId, updatedActivity);
@@ -460,6 +473,57 @@ export default function TripDetailsPage() {
         });
     };
 
+    const handleOptimizeRoute = async (dayId: string) => {
+        if (!activeTrip) return;
+        const day = activeTrip.days.find(d => d.id === dayId);
+        if (!day || !day.activities || day.activities.length <= 1) return;
+
+        const activities = [...day.activities];
+        const optimized: string[] = [];
+
+        // Start with accommodation if exists, otherwise first activity
+        let currentPos = day.accommodation?.location || activities[0].location;
+        let remaining = [...activities];
+
+        // Basic nearest-neighbor route optimization (Greedy Traveling Salesman)
+        while (remaining.length > 0) {
+            let nearestIdx = 0;
+            let minDist = Infinity;
+
+            for (let i = 0; i < remaining.length; i++) {
+                const act = remaining[i];
+                if (!act.location?.latitude || !act.location?.longitude || !currentPos?.latitude || !currentPos?.longitude) {
+                    minDist = 0;
+                    nearestIdx = i;
+                    break;
+                }
+
+                // Squared distance for performance
+                const dist = Math.pow(act.location.latitude - currentPos.latitude, 2) +
+                    Math.pow(act.location.longitude - currentPos.longitude, 2);
+
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearestIdx = i;
+                }
+            }
+
+            const next = remaining.splice(nearestIdx, 1)[0];
+            optimized.push(next.id);
+            currentPos = next.location;
+        }
+
+        // Add stay and transport placeholders back if they exist in customOrder
+        const fullOrder = [...(day.customOrder || [])];
+        const activityIds = day.activities.map(a => a.id);
+
+        // Filter out old activities and insert optimized ones in place
+        const nonActivityIds = fullOrder.filter(id => !activityIds.includes(id));
+        const finalOrder = [...nonActivityIds, ...optimized];
+
+        await useTripStore.getState().updateDayOrder(activeTrip.id, dayId, finalOrder);
+    };
+
     const handleDragEndMagic = (event: DragEndEvent) => {
         const { active, over } = event;
         if (active.id === 'magic-wand' && over) {
@@ -479,6 +543,14 @@ export default function TripDetailsPage() {
 
     const handleSaveAccommodation = async (accommodationData: Partial<AccommodationDetails>) => {
         if (!activeTrip) return;
+
+        // Auto-geocode if missing
+        if (accommodationData.location && (!accommodationData.location.latitude || !accommodationData.location.longitude)) {
+            const coords = await geocodeLocations([accommodationData.location.name]);
+            if (coords[accommodationData.location.name]) {
+                accommodationData.location = { ...accommodationData.location, ...coords[accommodationData.location.name] };
+            }
+        }
 
         if (editingAccommodation) {
             // Update existing
@@ -505,6 +577,64 @@ export default function TripDetailsPage() {
     const handleSaveBudget = async (budget: TripBudget) => {
         if (!activeTrip) return;
         await useTripStore.getState().updateTripBudget(activeTrip.id, budget);
+    };
+
+    const handleSyncLocations = async () => {
+        if (!activeTrip) return;
+
+        const locNames = new Set<string>();
+        activeTrip.days.forEach(d => {
+            d.activities?.forEach(a => {
+                if (!a.location.latitude || !a.location.longitude) locNames.add(a.location.name);
+            });
+            if (d.accommodation && (!d.accommodation.location.latitude || !d.accommodation.location.longitude)) {
+                locNames.add(d.accommodation.location.name);
+            }
+        });
+
+        activeTrip.stays?.forEach(s => {
+            if (!s.location.latitude || !s.location.longitude) locNames.add(s.location.name);
+        });
+
+        if (locNames.size === 0) {
+            alert("All locations already have coordinates!");
+            return;
+        }
+
+        const coords = await geocodeLocations(Array.from(locNames));
+
+        const updatedDays = activeTrip.days.map(d => ({
+            ...d,
+            activities: d.activities.map(a => ({
+                ...a,
+                location: {
+                    ...a.location,
+                    ...(coords[a.location.name] || {})
+                }
+            })),
+            accommodation: d.accommodation ? {
+                ...d.accommodation,
+                location: {
+                    ...d.accommodation.location,
+                    ...(coords[d.accommodation.location.name] || {})
+                }
+            } : undefined
+        }));
+
+        const updatedStays = activeTrip.stays?.map(s => ({
+            ...s,
+            location: {
+                ...s.location,
+                ...(coords[s.location.name] || {})
+            }
+        }));
+
+        await updateTripDetails(activeTrip.id, {
+            days: updatedDays,
+            stays: updatedStays
+        });
+
+        alert(`Synced ${Object.keys(coords).length} locations!`);
     };
 
     const getDayDateString = (dayId: string) => {
@@ -554,6 +684,37 @@ export default function TripDetailsPage() {
         }
     }, [isInitializing, loading, hasInitialScrolled, processedDays]);
 
+
+    // Intersection Observer for scroll-to-map sync
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const dayId = entry.target.id.replace('day-', '');
+                        setActiveDayId(dayId);
+                    }
+                });
+            },
+            { threshold: 0.3, rootMargin: '-10% 0px -70% 0px' }
+        );
+
+        const dayElements = document.querySelectorAll('[id^="day-"]');
+        dayElements.forEach((el) => observer.observe(el));
+
+        return () => observer.disconnect();
+    }, [processedDays, isInitializing]);
+
+    const handleMarkerClick = (id: string, type: 'activity' | 'stay') => {
+        setFocusedActivityId(id);
+        const el = document.getElementById(type === 'stay' ? `stay-${id}` : `activity-${id}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Add a brief highlight effect
+            el.classList.add('ring-4', 'ring-primary-500/50');
+            setTimeout(() => el.classList.remove('ring-4', 'ring-primary-500/50'), 2000);
+        }
+    };
 
     if (isInitializing || loading) {
         return (
@@ -627,6 +788,28 @@ export default function TripDetailsPage() {
                                 <div className="hidden sm:flex bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-3 py-1 rounded-full text-xs font-semibold border border-primary-100 dark:border-primary-800">
                                     {activeTrip.days?.length || 0} Days
                                 </div>
+
+                                <button
+                                    onClick={() => setShowMap(!showMap)}
+                                    className={`p-1.5 sm:p-2 rounded-lg transition-colors flex items-center gap-1.5 ${showMap ? 'bg-primary-50 text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
+                                    title="Toggle Map View"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.106-1.789L9 2m6 18l5.447-2.724A2 2 0 0021 15.382V6.618a2 2 0 00-1.106-1.789L15 2m-6 18V2m6 18V2" />
+                                    </svg>
+                                    <span className="text-xs font-bold hidden sm:inline">Map</span>
+                                </button>
+
+                                <button
+                                    onClick={handleSyncLocations}
+                                    className="p-1.5 sm:p-2 text-gray-400 hover:text-primary-600 transition-colors"
+                                    title="Auto-fix missing map coordinates"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                </button>
 
                                 <button
                                     onClick={() => setIsEditTripModalOpen(true)}
@@ -726,11 +909,11 @@ export default function TripDetailsPage() {
                     </div>
                 </div>
 
-                {/* Main Content - Itinerary */}
-                <div id="itinerary-content" className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
-                    <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
+                {/* Main Content - Itinerary & Map Split View */}
+                <div id="itinerary-content" className={`container mx-auto px-2 sm:px-4 py-4 sm:py-8 transition-all duration-500 overflow-x-hidden ${showMap ? 'max-w-none lg:px-8' : ''}`}>
+                    <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 min-h-[calc(100vh-200px)]">
                         {/* Left: Day List */}
-                        <div className="flex-1 space-y-4 sm:space-y-6">
+                        <div className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${showMap ? 'lg:w-[55%] xl:w-[60%] hidden lg:block' : 'w-full block'}`}>
                             <div className="flex items-center justify-between px-2 sm:px-0">
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
                                 <div className="flex items-center gap-3">
@@ -744,100 +927,126 @@ export default function TripDetailsPage() {
                                         </svg>
                                         Sync Weather
                                     </button>
-                                    <span className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                                        {processedDays?.reduce((acc, day) => acc + (day.activities?.length || 0) + (day.transportation?.length || 0) + (day.accommodation ? 1 : 0), 0) || 0} Items
-                                    </span>
+                                    <button
+                                        onClick={handleSyncLocations}
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/50 shadow-sm"
+                                        title="Find coordinates for missing locations"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        Sync Locations
+                                    </button>
                                 </div>
                             </div>
 
-                            {processedDays && processedDays.length > 0 ? (
-                                <div className="space-y-6">
-                                    {processedDays.map((day, index) => (
-                                        <DroppableDay key={day.id || `day-${index}`} dayId={day.id}>
-                                            <DayCard
-                                                day={day}
-                                                onAddActivity={() => handleAddActivityClick(day.id)}
-                                                onEditActivity={(activity) => handleEditActivityClick(day.id, activity)}
-                                                onToggleActivityLock={(activityId) => handleToggleActivityLock(day.id, activityId)}
-                                                onAddPhoto={() => handleAddPhotoClick(day.id)}
-                                                onRemovePhoto={(photoId) => handleRemovePhoto(day.id, photoId)}
-                                                onUndo={() => handleUndoMagic(day.id)}
-                                                showUndo={!!lastGeneratedIds[day.id]}
-                                            />
+                            <div className="space-y-6 sm:space-y-10">
+                                {processedDays && processedDays.length > 0 ? (
+                                    processedDays.map((day) => (
+                                        <DroppableDay key={day.id} dayId={day.id}>
+                                            <div id={`day-${day.id}`}>
+                                                <DayCard
+                                                    day={day}
+                                                    onAddActivity={() => handleAddActivityClick(day.id)}
+                                                    onEditActivity={(activity) => handleEditActivityClick(day.id, activity)}
+                                                    onToggleActivityLock={(activityId) => handleToggleActivityLock(day.id, activityId)}
+                                                    onAddPhoto={() => handleAddPhotoClick(day.id)}
+                                                    onRemovePhoto={(photoId) => handleRemovePhoto(day.id, photoId)}
+                                                    onUndo={() => handleUndoMagic(day.id)}
+                                                    showUndo={!!lastGeneratedIds[day.id]}
+                                                    onOptimize={() => handleOptimizeRoute(day.id)}
+                                                />
+                                            </div>
                                         </DroppableDay>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border-2 border-dashed border-gray-200 dark:border-gray-700">
-                                    <p className="text-gray-500 mb-2">Setting up your itinerary...</p>
-                                </div>
-                            )}
+                                    ))
+                                ) : (
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border-2 border-dashed border-gray-200 dark:border-gray-700">
+                                        <p className="text-gray-500 mb-2">Setting up your itinerary...</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Right: Sidebar */}
-                        <div className="w-full lg:w-[350px] space-y-6 lg:sticky lg:top-24 h-fit">
-                            {/* Transportation Sidebar */}
-                            <div id="sidebar-transportation" className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                        <svg className="w-5 h-5 text-blue-500 fill-current" viewBox="0 0 24 24">
-                                            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
-                                        </svg>
-                                        Transportation
-                                    </h3>
-                                    <button onClick={handleAddTransportClick} className="text-primary-600 hover:text-primary-700 text-sm font-semibold">+ Add</button>
-                                </div>
-                                {activeTrip.transportation && activeTrip.transportation.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {activeTrip.transportation.map((transport, idx) => (
-                                            <div key={transport.id || idx} onClick={() => handleEditTransportClick(transport)} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                                <div className="flex justify-between items-start">
-                                                    <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{transport.airline} {transport.flightNumber}</div>
-                                                    <div className="text-xs font-mono text-gray-400">{transport.departureAirportCode} → {transport.arrivalAirportCode}</div>
-                                                </div>
+                        {/* Right: Sticky Content Pane (Map or Sidebar) */}
+                        <div className={`lg:sticky lg:top-24 lg:h-[calc(100vh-120px)] w-full lg:w-[45%] xl:w-[40%] transition-all duration-500 ${showMap ? 'block pb-20 lg:pb-0' : 'hidden lg:block'}`}>
+                            {showMap ? (
+                                <TripMap
+                                    activities={activeTrip.days.flatMap(d => (d.activities || []).map(a => ({ ...a, dayId: d.id })))}
+                                    accommodations={activeTrip.days.flatMap(d => d.accommodation ? [{ ...d.accommodation, dayId: d.id }] : [])}
+                                    transportation={activeTrip.days.flatMap(d => d.transportation || [])}
+                                    activeDayId={activeDayId}
+                                    focusedId={focusedActivityId}
+                                    onMarkerClick={handleMarkerClick}
+                                    className="h-[calc(100vh-200px)] lg:h-full min-h-[400px]"
+                                />
+                            ) : (
+                                <div className="space-y-6 overflow-y-auto h-full pr-2">
+                                    {/* Transportation Sidebar */}
+                                    <div id="sidebar-transportation" className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                <svg className="w-5 h-5 text-blue-500 fill-current" viewBox="0 0 24 24">
+                                                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+                                                </svg>
+                                                Transportation
+                                            </h3>
+                                            <button onClick={handleAddTransportClick} className="text-primary-600 hover:text-primary-700 text-sm font-semibold">+ Add</button>
+                                        </div>
+                                        {activeTrip.transportation && activeTrip.transportation.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {activeTrip.transportation.map((transport, idx) => (
+                                                    <div key={transport.id || idx} onClick={() => handleEditTransportClick(transport)} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{transport.airline} {transport.flightNumber}</div>
+                                                            <div className="text-xs font-mono text-gray-400">{transport.departureAirportCode} → {transport.arrivalAirportCode}</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
+                                        ) : (
+                                            <div className="text-center py-6 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-xl text-gray-400 text-sm">No transfers added</div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div className="text-center py-6 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-xl text-gray-400 text-sm">No transfers added</div>
-                                )}
-                            </div>
 
-                            {/* Stays Sidebar */}
-                            <div id="sidebar-stays" className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                        <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10V6a2 2 0 012-2h14a2 2 0 012 2v4M3 20v-8a2 2 0 012-2h14a2 2 0 012 2v8M3 14h18M12 4v6" />
-                                        </svg>
-                                        My Stays
-                                    </h3>
-                                    <button onClick={handleAddAccommodationClick} className="text-primary-600 hover:text-primary-700 text-sm font-semibold">+ Add Stay</button>
-                                </div>
-                                {activeTrip.stays && activeTrip.stays.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {activeTrip.stays.map((stay, idx) => (
-                                            <div key={stay.id || idx} onClick={() => handleEditAccommodationClick(stay)} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                                <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{stay.name}</div>
-                                                <div className="text-xs text-gray-500">{stay.checkInDate} - {stay.checkOutDate}</div>
+                                    {/* Stays Sidebar */}
+                                    <div id="sidebar-stays" className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10V6a2 2 0 012-2h14a2 2 0 012 2v4M3 20v-8a2 2 0 012-2h14a2 2 0 012 2v8M3 14h18M12 4v6" />
+                                                </svg>
+                                                My Stays
+                                            </h3>
+                                            <button onClick={handleAddAccommodationClick} className="text-primary-600 hover:text-primary-700 text-sm font-semibold">+ Add Stay</button>
+                                        </div>
+                                        {activeTrip.stays && activeTrip.stays.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {activeTrip.stays.map((stay, idx) => (
+                                                    <div key={stay.id || idx} onClick={() => handleEditAccommodationClick(stay)} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                                        <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{stay.name}</div>
+                                                        <div className="text-xs text-gray-500">{stay.checkInDate} - {stay.checkOutDate}</div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
+                                        ) : (
+                                            <div className="text-gray-400 text-sm italic">No stays added yet.</div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div className="text-gray-400 text-sm italic">No stays added yet.</div>
-                                )}
 
-                                <div className="border-t border-gray-100 dark:border-gray-700 my-4"></div>
-                                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Summary</h3>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between"><span className="text-gray-500">Duration</span><span className="font-medium">{activeTrip.days?.length} Days</span></div>
-                                    <div className="flex justify-between"><span className="text-gray-500">Activities</span><span className="font-medium">{activeTrip.days?.reduce((acc, day) => acc + (day.activities?.length || 0), 0)}</span></div>
-                                    <div onClick={() => setIsBudgetModalOpen(true)} className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center text-primary-600 font-medium cursor-pointer hover:underline">
-                                        <span>View Budget</span>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                    {/* Summary Stats */}
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                                        <h3 className="font-bold text-gray-900 dark:text-white mb-4">Summary</h3>
+                                        <div className="space-y-3 text-sm">
+                                            <div className="flex justify-between"><span className="text-gray-500">Duration</span><span className="font-medium">{activeTrip.days?.length} Days</span></div>
+                                            <div className="flex justify-between"><span className="text-gray-500">Activities</span><span className="font-medium">{activeTrip.days?.reduce((acc, day) => acc + (day.activities?.length || 0), 0)}</span></div>
+                                            <div onClick={() => setIsBudgetModalOpen(true)} className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center text-primary-600 font-medium cursor-pointer hover:underline">
+                                                <span>View Budget</span>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -845,13 +1054,22 @@ export default function TripDetailsPage() {
                 {/* Bottom Mobile Navigation */}
                 <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800 pb-safe">
                     <div className="flex justify-around items-center h-16 px-4">
-                        <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex flex-col items-center gap-1 text-primary-600">
+                        <button
+                            onClick={() => {
+                                setShowMap(false);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`flex flex-col items-center gap-1 ${!showMap ? 'text-primary-600' : 'text-gray-400'}`}
+                        >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             <span className="text-[10px] font-bold">Itinerary</span>
                         </button>
-                        <button onClick={() => document.getElementById('sidebar-transportation')?.scrollIntoView({ behavior: 'smooth' })} className="flex flex-col items-center gap-1 text-gray-400">
-                            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" /></svg>
-                            <span className="text-[10px] font-bold">Transfers</span>
+                        <button
+                            onClick={() => setShowMap(true)}
+                            className={`flex flex-col items-center gap-1 ${showMap ? 'text-primary-600' : 'text-gray-400'}`}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.106-1.789L9 2m6 18l5.447-2.724A2 2 0 0021 15.382V6.618a2 2 0 00-1.106-1.789L15 2m-6 18V2m6 18V2" /></svg>
+                            <span className="text-[10px] font-bold">Map</span>
                         </button>
                     </div>
                 </div>

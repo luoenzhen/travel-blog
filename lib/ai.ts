@@ -30,7 +30,11 @@ export async function generateMagicItinerary(prompt: string, startDate: string, 
                         "type": "sightseeing | dining | shopping | transport | entertainment | other",
                         "startTime": "HH:mm AM/PM",
                         "endTime": "HH:mm AM/PM",
-                        "location": { "name": "Venue Name, City, Country (full searchable address)" },
+                        "location": { 
+                            "name": "Venue Name, City, Country (full searchable address)",
+                            "latitude": 0.0,
+                            "longitude": 0.0
+                        },
                         "notes": "Short description and why it fits the user interest",
                         "cost": 0,
                         "environment": "indoor | outdoor | both"
@@ -126,7 +130,11 @@ export async function generateMagicDayActivities(
             "type": "sightseeing | dining | shopping | transport | entertainment | other",
             "startTime": "HH:mm AM/PM",
             "endTime": "HH:mm AM/PM",
-            "location": { "name": "Venue Name, Address, City, Country" },
+            "location": { 
+                "name": "Venue Name, Address, City, Country",
+                "latitude": 0.0,
+                "longitude": 0.0
+            },
             "notes": "Why this is a great choice",
             "cost": 0,
             "environment": "indoor | outdoor | both"
@@ -165,3 +173,33 @@ export async function generateMagicDayActivities(
     }
 }
 
+export async function geocodeLocations(locationNames: string[]): Promise<Record<string, { latitude: number, longitude: number }>> {
+    if (!apiKey || locationNames.length === 0) return {};
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+
+    const prompt = `Geocode the following location names. Return a JSON object mapping each name to its coordinates:
+    ${JSON.stringify(locationNames)}
+    
+    Response format:
+    {
+        "Location Name": { "latitude": 0.0, "longitude": 0.0 }
+    }
+    
+    Rules:
+    1. Only return JSON.
+    2. Be as accurate as possible.
+    3. If a location is vague, provide coordinates for the center of its city.`;
+
+    try {
+        const result = await model.generateContent([prompt]);
+        const response = await result.response;
+        const text = response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return {};
+        return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+        console.error("Geocoding Error:", error);
+        return {};
+    }
+}
