@@ -368,13 +368,22 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                                                         </span>
                                                     </div>
                                                     {item.location && (
-                                                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
-                                                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <a
+                                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location.name)}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="flex items-center text-xs text-gray-400 hover:text-primary-500 transition-colors mb-1 sm:mb-2 w-fit group/map"
+                                                        >
+                                                            <svg className="w-3 h-3 mr-1 group-hover/map:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                                             </svg>
-                                                            {item.location.name}
-                                                        </div>
+                                                            <span>{item.location.name}</span>
+                                                            <svg className="w-2.5 h-2.5 ml-1 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                            </svg>
+                                                        </a>
                                                     )}
                                                     {item.notes && (
                                                         <p className="text-xs text-gray-600 dark:text-gray-300 italic bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg border border-yellow-100 dark:border-yellow-900/30">

@@ -94,9 +94,20 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                 <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 md:gap-6">
                     {/* Departure */}
                     <div className="flex-1 min-w-0 w-full text-center sm:text-left">
-                        <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white leading-tight">
-                            {transport.departureAirportCode}
-                        </div>
+                        <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(transport.departureAirport + ' ' + (transport.departureAirportCode || ''))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-block hover:text-primary-500 transition-colors group/dep"
+                        >
+                            <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center justify-center sm:justify-start gap-1">
+                                {transport.departureAirportCode}
+                                <svg className="w-3 h-3 opacity-0 group-hover/dep:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </div>
+                        </a>
                         <div className="text-[9px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.departureAirport}>
                             {formatTime(transport.departureTime)}
                         </div>
@@ -189,9 +200,20 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
 
                     {/* Arrival */}
                     <div className="flex-1 min-w-0 w-full text-center sm:text-right">
-                        <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white leading-tight">
-                            {transport.arrivalAirportCode}
-                        </div>
+                        <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(transport.arrivalAirport + ' ' + (transport.arrivalAirportCode || ''))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-block hover:text-primary-500 transition-colors group/arr"
+                        >
+                            <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center justify-center sm:justify-end gap-1">
+                                <svg className="w-3 h-3 opacity-0 group-hover/arr:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                {transport.arrivalAirportCode}
+                            </div>
+                        </a>
                         <div className="text-[9px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.arrivalAirport}>
                             {formatTime(transport.arrivalTime)}
                         </div>

@@ -665,7 +665,27 @@ export default function TripDetailsPage() {
                                                         )}
                                                     </span>
                                                 </div>
-                                                <div className="text-xs font-mono text-gray-400">{transport.departureAirportCode} → {transport.arrivalAirportCode}</div>
+                                                <div className="text-xs font-mono text-gray-400 flex items-center gap-1">
+                                                    <a
+                                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(transport.departureAirport + ' ' + (transport.departureAirportCode || ''))}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="hover:text-primary-500 transition-colors"
+                                                    >
+                                                        {transport.departureAirportCode}
+                                                    </a>
+                                                    <span>→</span>
+                                                    <a
+                                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(transport.arrivalAirport + ' ' + (transport.arrivalAirportCode || ''))}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="hover:text-primary-500 transition-colors"
+                                                    >
+                                                        {transport.arrivalAirportCode}
+                                                    </a>
+                                                </div>
                                             </div>
                                             <div className="text-xs text-gray-500 space-y-0.5 mt-1">
                                                 <div className="capitalize">{transport.type} • {(() => {
@@ -721,7 +741,18 @@ export default function TripDetailsPage() {
                                             <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{stay.name}</div>
                                             <div className="text-xs text-gray-500 space-y-0.5 mt-1">
                                                 <div>{stay.checkInDate} - {stay.checkOutDate}</div>
-                                                <div className="truncate">{stay.address}</div>
+                                                <a
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stay.address + ' ' + stay.name)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="truncate block hover:text-purple-500 transition-colors flex items-center gap-1 group/item-addr"
+                                                >
+                                                    <span className="truncate">{stay.address}</span>
+                                                    <svg className="w-2.5 h-2.5 opacity-0 group-hover/item-addr:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                    </svg>
+                                                </a>
                                             </div>
                                         </div>
                                     ))}

@@ -24,7 +24,18 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
                         </div>
                         <div>
                             <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm sm:text-base leading-tight">{accommodation.name}</h4>
-                            <p className="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400">{accommodation.address}</p>
+                            <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(accommodation.address + ' ' + accommodation.name)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[10px] sm:text-sm text-gray-400 hover:text-purple-500 transition-colors flex items-center gap-1 group/addr"
+                            >
+                                <span className="truncate max-w-[150px] sm:max-w-[250px]">{accommodation.address}</span>
+                                <svg className="w-2.5 h-2.5 opacity-0 group-hover/addr:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </a>
                         </div>
                     </div>
                     <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wide bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded flex-shrink-0">
