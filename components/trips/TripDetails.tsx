@@ -13,6 +13,7 @@ import CreateTripModal from '@/components/trips/CreateTripModal';
 import BudgetModal from '@/components/trips/BudgetModal';
 import AddPhotoModal from '@/components/trips/AddPhotoModal';
 import { Activity, TransportationDetails, AccommodationDetails, DayPlan, TripBudget, Media } from '@/types';
+import { MapProviderKey } from '@/lib/maps';
 import { generateMagicDayActivities, geocodeLocations } from '@/lib/ai';
 import dynamic from 'next/dynamic';
 
@@ -45,17 +46,17 @@ function DraggableMagicWand({ isGenerating }: { isGenerating: boolean }) {
             {...listeners}
             {...attributes}
             disabled={isGenerating}
-            className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all group/magic disabled:opacity-50 cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : 'animate-bounce-subtle'}`}
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all group/magic disabled:opacity-50 cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : 'animate-bounce-subtle'}`}
             title="Drag me to a day to generate magic activities!"
         >
             {isGenerating ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-                <svg className="w-5 h-5 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
             )}
-            <span className="text-sm font-bold whitespace-nowrap hidden sm:inline">Magic Wand</span>
+            <span className="text-xs font-bold whitespace-nowrap">Magic Wand</span>
         </button>
     );
 }
@@ -104,7 +105,9 @@ export default function TripDetailsPage() {
     const [editingActivity, setEditingActivity] = useState<Activity | undefined>(undefined);
     const [isMagicGenerating, setIsMagicGenerating] = useState(false);
     const [lastGeneratedIds, setLastGeneratedIds] = useState<Record<string, string[]>>({});
-    const [showMap, setShowMap] = useState(true);
+    const [showMap, setShowMap] = useState(false);
+    const [activeTab, setActiveTab] = useState<'itinerary' | 'transport' | 'stay' | 'map'>('itinerary');
+    const [mapProvider, setMapProvider] = useState<MapProviderKey>('OSM');
     const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null);
 
     const sensorsMagic = useSensors(
@@ -445,9 +448,10 @@ export default function TripDetailsPage() {
                 ...prev,
                 [day.id]: generatedIds
             }));
-        } catch (error) {
-            console.error("Magic Generate Day Error:", error);
-            alert("Failed to generate activities. Please try again.");
+        } catch (error: unknown) {
+            console.error("Magic generate failed:", error);
+            const message = error instanceof Error ? error.message : "Failed to generate activities.";
+            alert(message);
         } finally {
             setIsMagicGenerating(false);
         }
@@ -544,9 +548,14 @@ export default function TripDetailsPage() {
 
         // Auto-geocode if missing
         if (accommodationData.location && (!accommodationData.location.latitude || !accommodationData.location.longitude)) {
-            const coords = await geocodeLocations([accommodationData.location.name]);
-            if (coords[accommodationData.location.name]) {
-                accommodationData.location = { ...accommodationData.location, ...coords[accommodationData.location.name] };
+            try {
+                const coords = await geocodeLocations([accommodationData.location.name]);
+                if (coords[accommodationData.location.name]) {
+                    accommodationData.location = { ...accommodationData.location, ...coords[accommodationData.location.name] };
+                }
+            } catch (error: unknown) {
+                console.error("Auto-geocode failed:", error);
+                // Don't alert here to avoid annoyance, just log.
             }
         }
 
@@ -599,7 +608,15 @@ export default function TripDetailsPage() {
             return;
         }
 
-        const coords = await geocodeLocations(Array.from(locNames));
+        let coords: Record<string, { latitude: number; longitude: number }> = {};
+        try {
+            coords = await geocodeLocations(Array.from(locNames));
+        } catch (error: unknown) {
+            console.error("Sync locations failed:", error);
+            const message = error instanceof Error ? error.message : "Failed to sync locations due to AI error.";
+            alert(message);
+            return;
+        }
 
         const updatedDays = activeTrip.days.map(d => ({
             ...d,
@@ -748,73 +765,81 @@ export default function TripDetailsPage() {
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 pb-20 lg:pb-0">
                 {/* Header */}
                 <div className="bg-white/90 dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/60 pt-safe">
-                    <div className="container mx-auto px-4 py-2.5 sm:py-4">
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                    <div className="container mx-auto px-4 py-2 sm:py-4">
+                        {/* Top row: Navigation and Actions */}
+                        <div className="flex items-center justify-between mb-2 sm:mb-0">
+                            <div className="flex items-center gap-1">
                                 <button
                                     onClick={() => router.push('/trips')}
-                                    className="p-1 sm:p-2 -ml-1 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    className="p-1.5 -ml-1 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center"
+                                    title="Back to trips"
                                 >
-                                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                 </button>
-                                <div className="min-w-0">
-                                    <h1 className="text-lg sm:text-2xl font-display font-bold text-gray-900 dark:text-white leading-tight truncate">{activeTrip.title}</h1>
-                                    <div className="flex items-center text-[10px] sm:text-sm text-gray-500 dark:text-gray-400 space-x-2 mt-0">
-                                        <span className="flex items-center truncate">
-                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                            {activeTrip.destination}
-                                        </span>
-                                        <span className="hidden sm:inline">•</span>
-                                        <span className="flex items-center whitespace-nowrap">
-                                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                            {format(startDate, 'MMM d')} - {format(endDate, 'd')}
-                                        </span>
-                                    </div>
-                                </div>
                             </div>
 
-                            <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
-                                <DraggableMagicWand isGenerating={isMagicGenerating} />
-
-                                <div className="hidden sm:flex bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-3 py-1 rounded-full text-xs font-semibold border border-primary-100 dark:border-primary-800">
-                                    {activeTrip.days?.length || 0} Days
+                            <div className="flex items-center gap-1 sm:gap-3">
+                                <div className="hidden md:flex items-center gap-2 mr-2">
+                                    <button
+                                        onClick={() => updateWeather(tripId)}
+                                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:text-primary-600 bg-white dark:bg-gray-800 dark:text-gray-400 dark:hover:text-primary-400 transition-all rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                                        title="Refresh weather data"
+                                    >
+                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Weather</span>
+                                    </button>
+                                    <button
+                                        onClick={handleSyncLocations}
+                                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 rounded-lg border border-amber-100 dark:border-amber-800 transition-all shadow-sm"
+                                        title="Auto-fix missing map coordinates"
+                                    >
+                                        <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        <span>Locations</span>
+                                    </button>
                                 </div>
 
-                                <button
-                                    onClick={() => setShowMap(!showMap)}
-                                    className={`p-1.5 sm:p-2 rounded-lg transition-colors flex items-center gap-1.5 ${showMap ? 'bg-primary-50 text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
-                                    title="Toggle Map View"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.106-1.789L9 2m6 18l5.447-2.724A2 2 0 0021 15.382V6.618a2 2 0 00-1.106-1.789L15 2m-6 18V2m6 18V2" />
-                                    </svg>
-                                    <span className="text-xs font-bold hidden sm:inline">Map</span>
-                                </button>
+                                <DraggableMagicWand isGenerating={isMagicGenerating} />
 
-                                <button
-                                    onClick={handleSyncLocations}
-                                    className="p-1.5 sm:p-2 text-gray-400 hover:text-primary-600 transition-colors"
-                                    title="Auto-fix missing map coordinates"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </button>
+
+                                <div className="flex items-center">
+                                    <button
+                                        onClick={() => {
+                                            const newShowMap = !showMap;
+                                            setShowMap(newShowMap);
+                                            if (newShowMap) setActiveTab('map');
+                                            else setActiveTab('itinerary');
+                                        }}
+                                        className={`p-1.5 sm:p-2 rounded-l-lg border border-r-0 border-gray-100 dark:border-gray-700 transition-colors flex items-center gap-1.5 ${showMap ? 'bg-primary-50 text-primary-600 border-primary-100' : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600'}`}
+                                        title="Toggle Map View"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.106-1.789L9 2m6 18l5.447-2.724A2 2 0 0021 15.382V6.618a2 2 0 00-1.106-1.789L15 2m-6 18V2m6 18V2" />
+                                        </svg>
+                                        <span className="text-xs font-bold hidden sm:inline">Map</span>
+                                    </button>
+                                    <select
+                                        value={mapProvider}
+                                        onChange={(e) => setMapProvider(e.target.value as MapProviderKey)}
+                                        className="text-[10px] sm:text-xs bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 h-[34px] sm:h-[40px] pl-1 pr-6 sm:px-2 rounded-r-lg text-gray-500 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2210%22%20height%3D%226%22%20viewBox%3D%220%200%2010%206%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M1%201L5%205L9%201%22%20stroke%3D%22%239CA3AF%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:10px_6px] bg-[right_6px_center] bg-no-repeat"
+                                        title="Select Map Provider"
+                                    >
+                                        <option value="OSM">OSM</option>
+                                        <option value="AMAP">Amap</option>
+                                    </select>
+                                </div>
 
                                 <button
                                     onClick={() => setIsEditTripModalOpen(true)}
                                     className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                     title="Edit Trip Details"
                                 >
-                                    <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
                                 </button>
@@ -843,7 +868,7 @@ export default function TripDetailsPage() {
                                             }
                                         }
                                     }}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                     title="Share trip"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -852,13 +877,7 @@ export default function TripDetailsPage() {
                                 </button>
 
                                 <button
-                                    onClick={async (e) => {
-                                        e.preventDefault();
-                                        if (!activeTrip) {
-                                            alert("No active trip to export!");
-                                            return;
-                                        }
-
+                                    onClick={async () => {
                                         try {
                                             const tripToExport = JSON.parse(JSON.stringify(activeTrip));
                                             const serialize = (obj: unknown): void => {
@@ -897,7 +916,7 @@ export default function TripDetailsPage() {
                                             alert('Error creating export file: ' + errorMessage);
                                         }
                                     }}
-                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                     title="Export Trip"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -906,38 +925,70 @@ export default function TripDetailsPage() {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Lower row: Info and Magic Wand */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 sm:mt-4">
+                            <div className="min-w-0 flex-1">
+                                <h1 className="text-xl sm:text-2xl font-display font-bold text-gray-900 dark:text-white leading-tight mb-1 text-left">
+                                    <span className="truncate">{activeTrip.title}</span>
+                                </h1>
+                                <div className="flex flex-wrap items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 gap-x-3 gap-y-1">
+                                    <span className="flex items-center justify-between w-full sm:w-auto overflow-hidden">
+                                        <div className="flex items-center min-w-0">
+                                            <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            <span className="truncate">{activeTrip.destination}</span>
+                                        </div>
+                                        <div className="md:hidden flex items-center gap-1 ml-2">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); updateWeather(tripId); }}
+                                                className="flex items-center gap-1.5 px-2 py-1 text-gray-400 hover:text-primary-600 bg-gray-50 dark:bg-gray-700/50 rounded-md border border-gray-100 dark:border-gray-600 transition-all"
+                                                title="Refresh weather"
+                                            >
+                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                <span className="text-[10px] font-bold">Weather</span>
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleSyncLocations(); }}
+                                                className="flex items-center gap-1.5 px-2 py-1 text-amber-600 hover:text-amber-700 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-100 dark:border-amber-800 transition-all"
+                                                title="Sync locations"
+                                            >
+                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                </svg>
+                                                <span className="text-[10px] font-bold">Locations</span>
+                                            </button>
+                                        </div>
+                                    </span>
+                                    <span className="flex items-center whitespace-nowrap justify-between w-full sm:w-auto">
+                                        <div className="flex items-center">
+                                            <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
+                                        </div>
+                                        <span className="ml-2 sm:ml-4 px-2 py-0.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded text-[10px] sm:text-xs font-bold border border-primary-100 dark:border-primary-800 flex-shrink-0">
+                                            {activeTrip.days?.length || 0} Days
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Main Content - Itinerary & Map Split View */}
-                <div id="itinerary-content" className={`container mx-auto px-2 sm:px-4 py-4 sm:py-8 transition-all duration-500 overflow-x-hidden ${showMap ? 'max-w-none lg:px-8' : ''}`}>
+                <div id="itinerary-content" className={`container mx-auto px-2 sm:px-4 py-4 sm:py-8 transition-all duration-500 overflow-x-hidden ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
                     <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 min-h-[calc(100vh-200px)]">
                         {/* Left: Day List */}
-                        <div className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${showMap ? 'lg:w-[55%] xl:w-[60%] hidden lg:block' : 'w-full block'}`}>
-                            <div className="flex items-center justify-between px-2 sm:px-0">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => updateWeather(tripId)}
-                                        className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
-                                        title="Refresh weather data"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        Sync Weather
-                                    </button>
-                                    <button
-                                        onClick={handleSyncLocations}
-                                        className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800/50 shadow-sm"
-                                        title="Find coordinates for missing locations"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                        </svg>
-                                        Sync Locations
-                                    </button>
-                                </div>
+                        <div className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'}`}>
+                            <div className="flex items-center justify-between px-1 sm:px-0 gap-2">
+                                <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
+
                             </div>
 
                             <div className="space-y-6 sm:space-y-10">
@@ -968,21 +1019,21 @@ export default function TripDetailsPage() {
                         </div>
 
                         {/* Right: Sticky Content Pane (Map or Sidebar) */}
-                        <div className={`lg:sticky lg:top-24 lg:h-[calc(100vh-120px)] w-full lg:w-[45%] xl:w-[40%] transition-all duration-500 ${showMap ? 'block pb-20 lg:pb-0' : 'hidden lg:block'}`}>
+                        <div className={`lg:sticky lg:top-24 lg:h-[calc(100vh-120px)] w-full lg:w-[45%] xl:w-[40%] transition-all duration-500 ${activeTab !== 'itinerary' ? 'block pb-24 lg:pb-0' : 'hidden lg:block'}`}>
                             {showMap ? (
                                 <TripMap
                                     activities={activeTrip.days.flatMap(d => (d.activities || []).map(a => ({ ...a, dayId: d.id })))}
                                     accommodations={activeTrip.days.flatMap(d => d.accommodation ? [{ ...d.accommodation, dayId: d.id }] : [])}
-                                    transportation={activeTrip.days.flatMap(d => d.transportation || [])}
                                     activeDayId={activeDayId}
                                     focusedId={focusedActivityId}
                                     onMarkerClick={handleMarkerClick}
-                                    className="h-[calc(100vh-200px)] lg:h-full min-h-[400px]"
+                                    provider={mapProvider}
+                                    className="h-[calc(100vh-280px)] lg:h-full min-h-[350px] rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-inner"
                                 />
                             ) : (
                                 <div className="space-y-6 overflow-y-auto h-full pr-2">
                                     {/* Transportation Sidebar */}
-                                    <div id="sidebar-transportation" className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <div id="sidebar-transportation" className={`bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 ${activeTab === 'stay' ? 'hidden lg:block' : 'block'}`}>
                                         <div className="flex justify-between items-center mb-4">
                                             <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                                 <svg className="w-5 h-5 text-blue-500 fill-current" viewBox="0 0 24 24">
@@ -996,9 +1047,9 @@ export default function TripDetailsPage() {
                                             <div className="space-y-3">
                                                 {activeTrip.transportation.map((transport, idx) => (
                                                     <div key={transport.id || idx} onClick={() => handleEditTransportClick(transport)} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                                                        <div className="flex justify-between items-start">
-                                                            <div className="font-semibold text-sm text-gray-900 dark:text-gray-100">{transport.airline} {transport.flightNumber}</div>
-                                                            <div className="text-xs font-mono text-gray-400">{transport.departureAirportCode} → {transport.arrivalAirportCode}</div>
+                                                        <div className="flex justify-between items-center gap-2">
+                                                            <div className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate flex-1">{transport.airline} {transport.flightNumber}</div>
+                                                            <div className="text-xs font-mono text-gray-400 whitespace-nowrap flex-shrink-0">{transport.departureAirportCode} → {transport.arrivalAirportCode}</div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -1009,7 +1060,7 @@ export default function TripDetailsPage() {
                                     </div>
 
                                     {/* Stays Sidebar */}
-                                    <div id="sidebar-stays" className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                                    <div id="sidebar-stays" className={`bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 ${activeTab === 'transport' ? 'hidden lg:block' : 'block'}`}>
                                         <div className="flex justify-between items-center mb-4">
                                             <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                                 <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1057,16 +1108,40 @@ export default function TripDetailsPage() {
                         <button
                             onClick={() => {
                                 setShowMap(false);
+                                setActiveTab('itinerary');
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
-                            className={`flex flex-col items-center gap-1 ${!showMap ? 'text-primary-600' : 'text-gray-400'}`}
+                            className={`flex flex-col items-center gap-1 ${activeTab === 'itinerary' ? 'text-primary-600' : 'text-gray-400'}`}
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             <span className="text-[10px] font-bold">Itinerary</span>
                         </button>
                         <button
-                            onClick={() => setShowMap(true)}
-                            className={`flex flex-col items-center gap-1 ${showMap ? 'text-primary-600' : 'text-gray-400'}`}
+                            onClick={() => {
+                                setShowMap(false);
+                                setActiveTab('transport');
+                            }}
+                            className={`flex flex-col items-center gap-1 ${activeTab === 'transport' ? 'text-primary-600' : 'text-gray-400'}`}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                            <span className="text-[10px] font-bold">Transport</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowMap(false);
+                                setActiveTab('stay');
+                            }}
+                            className={`flex flex-col items-center gap-1 ${activeTab === 'stay' ? 'text-primary-600' : 'text-gray-400'}`}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                            <span className="text-[10px] font-bold">Stay</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowMap(true);
+                                setActiveTab('map');
+                            }}
+                            className={`flex flex-col items-center gap-1 ${activeTab === 'map' ? 'text-primary-600' : 'text-gray-400'}`}
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.106-1.789L9 2m6 18l5.447-2.724A2 2 0 0021 15.382V6.618a2 2 0 00-1.106-1.789L15 2m-6 18V2m6 18V2" /></svg>
                             <span className="text-[10px] font-bold">Map</span>
@@ -1082,6 +1157,6 @@ export default function TripDetailsPage() {
                 {activeTrip && <BudgetModal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} trip={activeTrip} onSave={handleSaveBudget} />}
                 <AddPhotoModal isOpen={isPhotoModalOpen} onClose={() => setIsPhotoModalOpen(false)} onSave={handleSavePhoto} dayDate={activeDayId ? getDayDateString(activeDayId) : ''} dayId={activeDayId || ''} />
             </div>
-        </DndContext>
+        </DndContext >
     );
 }

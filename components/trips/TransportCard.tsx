@@ -73,7 +73,7 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
     return (
         <div className="w-full pb-2 sm:pb-4 group" onClick={onClick}>
             <div className={`bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 border border-${color}-100 dark:border-${color}-900/30 shadow-sm transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700' : ''}`}>
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:mb-2 mb-1">
+                <div className="flex flex-row justify-between items-center gap-1 sm:mb-2 mb-1">
                     <div className="flex items-center gap-1.5">
                         <span className="font-bold text-gray-900 dark:text-gray-100 uppercase text-[9px] sm:text-sm">{transport.airline}</span>
                         <div className={`w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-${color}-50 dark:bg-${color}-900/20 flex items-center justify-center text-${color}-600 dark:text-${color}-400 flex-shrink-0`}>
@@ -92,9 +92,9 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 md:gap-6">
+                <div className="flex flex-row items-center gap-2 sm:gap-4 md:gap-6">
                     {/* Departure */}
-                    <div className="flex-1 min-w-0 w-full text-center sm:text-left">
+                    <div className="flex-1 min-w-0 text-left">
                         <a
                             href={`https://www.bing.com/maps?q=${encodeURIComponent(transport.departureAirportCode || transport.departureAirport)}`}
                             target="_blank"
@@ -102,7 +102,7 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                             onClick={(e) => e.stopPropagation()}
                             className="inline-block hover:text-primary-500 transition-colors group/dep"
                         >
-                            <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center justify-center sm:justify-start gap-1">
+                            <div className="text-base sm:text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center justify-start gap-1">
                                 {transport.departureAirportCode}
                                 <svg className="w-3 h-3 opacity-0 group-hover/dep:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -115,7 +115,7 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                     </div>
 
                     {/* Arrow/Direction Line */}
-                    <div className="flex-shrink-0 w-24 sm:w-40 md:w-56 lg:w-72 relative py-1.5 sm:py-0">
+                    <div className="flex-shrink-0 w-20 sm:w-40 md:w-56 lg:w-72 relative">
                         <div className="w-full h-[1px] bg-gray-100 dark:bg-gray-800/50 relative flex items-center justify-center">
                             {/* Animation Container */}
                             <div className="absolute inset-x-0 -inset-y-4 overflow-hidden pointer-events-none rounded-full">
@@ -200,7 +200,7 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
 
 
                     {/* Arrival */}
-                    <div className="flex-1 min-w-0 w-full text-center sm:text-right">
+                    <div className="flex-1 min-w-0 text-right">
                         <a
                             href={`https://www.bing.com/maps?q=${encodeURIComponent(transport.arrivalAirportCode || transport.arrivalAirport)}`}
                             target="_blank"
@@ -208,7 +208,7 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                             onClick={(e) => e.stopPropagation()}
                             className="inline-block hover:text-primary-500 transition-colors group/arr"
                         >
-                            <div className="text-lg sm:text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center justify-center sm:justify-end gap-1">
+                            <div className="text-base sm:text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center justify-end gap-1">
                                 <svg className="w-3 h-3 opacity-0 group-hover/arr:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>

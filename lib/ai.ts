@@ -95,8 +95,14 @@ export async function generateMagicItinerary(prompt: string, startDate: string, 
         }
 
         return data;
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("AI Generation Error:", error);
+        if (error instanceof Error && error.message?.includes('429')) {
+            throw new Error("AI Quota exceeded. Please try again later or wait for the quota to reset.");
+        }
+        if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
+            throw new Error("AI Quota exceeded. Please try again later or wait for the quota to reset.");
+        }
         throw error;
     }
 }
@@ -178,8 +184,14 @@ export async function generateMagicDayActivities(
                 imageUrl: `https://www.bing.com/th?q=${query}&w=1200&h=600&c=4&rs=1&qlt=90&cdv=1&pid=16.1&r=${randomSalt}`
             } as unknown as Activity;
         });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Single Day AI Generation Error:", error);
+        if (error instanceof Error && error.message?.includes('429')) {
+            throw new Error("AI Quota exceeded. Please try again later or wait for the quota to reset.");
+        }
+        if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
+            throw new Error("AI Quota exceeded. Please try again later or wait for the quota to reset.");
+        }
         throw error;
     }
 }
@@ -209,8 +221,15 @@ export async function geocodeLocations(locationNames: string[]): Promise<Record<
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) return {};
         return JSON.parse(jsonMatch[0]);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Geocoding Error:", error);
+        if (error instanceof Error && error.message?.includes('429')) {
+            // Re-throw so the UI can catch it and show an alert
+            throw new Error("AI Quota exceeded. Please try again later or wait for coordinates.");
+        }
+        if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
+            throw new Error("AI Quota exceeded. Please try again later or wait for coordinates.");
+        }
         return {};
     }
 }

@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
-import { Activity, AccommodationDetails, TransportationDetails } from '@/types';
+import { Activity, AccommodationDetails } from '@/types';
+import { MAP_PROVIDERS, MapProviderKey, wgs84ToGcj02 } from '@/lib/maps';
 
 // Dynamically import Map components to avoid SSR issues with Leaflet
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -18,11 +19,11 @@ import { useMap } from 'react-leaflet';
 interface TripMapProps {
     activities: Activity[];
     accommodations: AccommodationDetails[];
-    transportation: TransportationDetails[];
     activeDayId?: string | null;
     focusedId?: string | null;
     onMarkerClick?: (id: string, type: 'activity' | 'stay') => void;
     className?: string;
+    provider?: MapProviderKey;
 }
 
 // Internal component to handle view changes
@@ -43,8 +44,10 @@ export default function TripMap({
     activeDayId,
     focusedId,
     onMarkerClick,
-    className = "h-full w-full"
+    className = "h-full w-full",
+    provider = 'OSM'
 }: TripMapProps) {
+    const mapConfig = MAP_PROVIDERS[provider];
     const [isMounted, setIsMounted] = useState(false);
     const [L, setL] = useState<typeof import('leaflet') | null>(null);
 
@@ -80,22 +83,28 @@ export default function TripMap({
         : accommodations;
 
     const pins = [
-        ...activeActivities.map(a => ({
-            id: a.id,
-            type: 'activity' as const,
-            name: a.name,
-            lat: a.location.latitude,
-            lng: a.location.longitude,
-            category: a.type
-        })),
-        ...activeStays.map(s => ({
-            id: s.id,
-            type: 'stay' as const,
-            name: s.name,
-            lat: s.location.latitude,
-            lng: s.location.longitude,
-            category: 'accommodation'
-        }))
+        ...activeActivities.map(a => {
+            const [lat, lng] = mapConfig.isChina ? wgs84ToGcj02(a.location.latitude, a.location.longitude) : [a.location.latitude, a.location.longitude];
+            return {
+                id: a.id,
+                type: 'activity' as const,
+                name: a.name,
+                lat,
+                lng,
+                category: a.type
+            };
+        }),
+        ...activeStays.map(s => {
+            const [lat, lng] = mapConfig.isChina ? wgs84ToGcj02(s.location.latitude, s.location.longitude) : [s.location.latitude, s.location.longitude];
+            return {
+                id: s.id,
+                type: 'stay' as const,
+                name: s.name,
+                lat,
+                lng,
+                category: 'accommodation'
+            };
+        })
     ].filter(p => typeof p.lat === 'number' && typeof p.lng === 'number' && (Math.abs(p.lat) > 0.0001 || Math.abs(p.lng) > 0.0001));
 
     const bounds = pins.length > 0 ? pins.map(p => [p.lat, p.lng]) : [[0, 0]];
@@ -150,8 +159,9 @@ export default function TripMap({
                 className="h-full w-full rounded-2xl overflow-hidden shadow-inner border border-gray-200 dark:border-gray-700"
             >
                 <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    url={mapConfig.url}
+                    attribution={mapConfig.attribution}
+                    subdomains={mapConfig.subdomains || 'abc'}
                 />
 
                 {pins.map(pin => (
