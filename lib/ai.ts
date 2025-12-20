@@ -134,7 +134,7 @@ export async function generateMagicDayActivities(
     ]
     
     Rules:
-    6. MANDATORY LANGUAGE RULE: You MUST detect the language used in the "CRITICAL LANGUAGE CONTEXT" above and respond in that EXACT SAME LANGUAGE for all text fields (name, notes).
+    6. MANDATORY LANGUAGE RULE: You MUST detect the language used in the "CRITICAL LANGUAGE CONTEXT" above and respond in that EXACT SAME LANGUAGE for all text fields (specifically "name", "location.name", and "notes").
     7. ALL activities MUST be within the specific city/town of: ${destination}.
     `;
 

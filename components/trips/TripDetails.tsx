@@ -399,6 +399,7 @@ export default function TripDetailsPage() {
 
             const langStrings = [
                 activeTrip.title,
+                accommodation ? `${accommodation.name}: ${accommodation.notes || ''}` : null,
                 dayActivitiesStr,
                 otherActivities
             ].filter(Boolean);
