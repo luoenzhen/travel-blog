@@ -150,6 +150,55 @@
   }
 }
 
+@keyframes flight-move {
+  0% {
+    left: -15%;
+    transform: translateY(-50%) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-50%) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-60%) rotate(0deg);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(-50%) rotate(5deg);
+  }
+  100% {
+    left: 105%;
+    transform: translateY(-50%) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes train-move {
+  0% {
+    left: -20%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: 105%;
+    opacity: 0;
+  }
+}
+
 .animate-travel-line {
   animation: travel-line 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-flight-move {
+  animation: flight-move 4s linear infinite;
+}
+
+.animate-train-move {
+  animation: train-move 6s linear infinite;
 }

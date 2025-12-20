@@ -106,19 +106,42 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                     <div className="flex-shrink-0 w-24 sm:w-40 md:w-56 lg:w-72 relative py-1.5 sm:py-0">
                         <div className="w-full h-[1px] bg-gray-100 dark:bg-gray-800/50 relative flex items-center justify-center">
                             {/* Animation Container */}
-                            <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-full">
-                                <div
-                                    className="absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-current to-transparent animate-travel-line opacity-30"
-                                    style={{ color: `var(--${color === 'emerald' ? 'green' : color}-500)` }}
-                                ></div>
-                                <div
-                                    className="absolute top-1/2 -translate-y-1/2 w-1 h-1 rounded-full animate-travel-line z-10"
-                                    style={{
-                                        backgroundColor: `var(--${color === 'emerald' ? 'green' : color}-500)`,
-                                        boxShadow: `0 0 8px var(--${color === 'emerald' ? 'green' : color}-500)`,
-                                        animationDelay: '0.1s'
-                                    }}
-                                ></div>
+                            <div className="absolute inset-x-0 -inset-y-4 overflow-hidden pointer-events-none rounded-full">
+                                {transport.type === 'flight' ? (
+                                    <div className="absolute top-1/2 -translate-y-1/2 animate-flight-move opacity-40 text-blue-500">
+                                        <svg className="w-6 h-6 rotate-90 fill-current" viewBox="0 0 24 24">
+                                            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+                                        </svg>
+                                    </div>
+                                ) : transport.type === 'train' ? (
+                                    <div className="absolute top-1/2 -translate-y-1/2 animate-train-move opacity-40 text-emerald-500 flex items-center">
+                                        {/* Long train shape */}
+                                        <div className="w-12 h-2.5 bg-current rounded-l-sm flex items-center justify-around px-1 gap-0.5">
+                                            <div className="w-1.5 h-1 bg-white/40 rounded-sm"></div>
+                                            <div className="w-1.5 h-1 bg-white/40 rounded-sm"></div>
+                                            <div className="w-1.5 h-1 bg-white/40 rounded-sm"></div>
+                                            <div className="w-1.5 h-1 bg-white/40 rounded-sm"></div>
+                                        </div>
+                                        <div className="w-3 h-3 bg-current rounded-r-md -ml-0.5 relative">
+                                            <div className="absolute right-0.5 top-0.5 w-1 h-1.5 bg-white/40 rounded-sm"></div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div
+                                            className="absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-current to-transparent animate-travel-line opacity-30"
+                                            style={{ color: `var(--${color === 'emerald' ? 'green' : color}-500)` }}
+                                        ></div>
+                                        <div
+                                            className="absolute top-1/2 -translate-y-1/2 w-1 h-1 rounded-full animate-travel-line z-10"
+                                            style={{
+                                                backgroundColor: `var(--${color === 'emerald' ? 'green' : color}-500)`,
+                                                boxShadow: `0 0 8px var(--${color === 'emerald' ? 'green' : color}-500)`,
+                                                animationDelay: '0.1s'
+                                            }}
+                                        ></div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Arrowhead */}
@@ -132,6 +155,7 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                             </div>
                         </div>
                     </div>
+
 
                     {/* Arrival */}
                     <div className="flex-1 min-w-0 w-full text-center sm:text-right">
