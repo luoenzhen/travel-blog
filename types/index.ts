@@ -200,6 +200,11 @@ export interface DayPlan {
 
     // Completion status
     isCompleted: boolean;
+    weather?: {
+        temp: number;
+        condition: string;
+        icon: string; // e.g. "sunny", "rainy", "cloudy"
+    };
 }
 
 // Transportation Details
@@ -316,6 +321,7 @@ export interface Activity {
     // Lock status
     isLocked?: boolean;
     imageUrl?: string;
+    environment?: 'indoor' | 'outdoor' | 'both';
 }
 
 // Dining Plan

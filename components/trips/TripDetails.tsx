@@ -18,7 +18,7 @@ export default function TripDetailsPage() {
     const params = useParams();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { getTrip, activeTrip, initializeDays, addActivity, addAccommodation, loading, updateTripDetails } = useTripStore();
+    const { getTrip, activeTrip, initializeDays, addActivity, addAccommodation, loading, updateTripDetails, updateWeather } = useTripStore();
     const [isInitializing, setIsInitializing] = useState(true);
     const [searchFailed, setSearchFailed] = useState(false);
     const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
@@ -127,6 +127,8 @@ export default function TripDetailsPage() {
                 const trip = await getTrip(tripId);
                 if (trip) {
                     await initializeDays(tripId);
+                    // Fetch weather asynchronously so it doesn't block UI
+                    updateWeather(tripId);
                 } else {
                     setSearchFailed(true);
                 }
@@ -592,9 +594,21 @@ export default function TripDetailsPage() {
                     <div className="flex-1 space-y-4 sm:space-y-6">
                         <div className="flex items-center justify-between px-2 sm:px-0">
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
-                            <span className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-                                {processedDays?.reduce((acc, day) => acc + (day.activities?.length || 0) + (day.transportation?.length || 0) + (day.accommodation ? 1 : 0), 0) || 0} Items
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => updateWeather(tripId)}
+                                    className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                                    title="Refresh weather data"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Sync Weather
+                                </button>
+                                <span className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
+                                    {processedDays?.reduce((acc, day) => acc + (day.activities?.length || 0) + (day.transportation?.length || 0) + (day.accommodation ? 1 : 0), 0) || 0} Items
+                                </span>
+                            </div>
                         </div>
 
                         {processedDays && processedDays.length > 0 ? (

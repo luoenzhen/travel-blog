@@ -80,7 +80,9 @@ function SortableItem({ id, children, disabled }: { id: string; children: React.
 export default function DayCard({ day, onAddActivity, onEditActivity, onToggleActivityLock, onAddPhoto, onRemovePhoto }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const [hoveredImage, setHoveredImage] = useState<string | null>(null);
-    const dateObj = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
+    const dateObj = (day.date as any)?.toDate ? (day.date as any).toDate() :
+        (day.date as any)?.seconds ? new Date((day.date as any).seconds * 1000) :
+            new Date(day.date as any);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -249,6 +251,62 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
         return <span className={colorClass}>{icon}</span>;
     };
 
+    const renderWeather = () => {
+        if (!day.weather) return null;
+
+        const { temp, icon, condition } = day.weather;
+
+        return (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-xl border border-gray-100/50 dark:border-gray-600/50 shadow-sm transition-all hover:scale-105 group" title={condition}>
+                <span className="text-xl group-hover:animate-bounce">
+                    {icon === 'sunny' && '☀️'}
+                    {icon === 'rainy' && '🌧️'}
+                    {icon === 'cloudy' && '☁️'}
+                    {icon === 'snowy' && '❄️'}
+                    {icon === 'thunderstorm' && '⛈️'}
+                </span>
+                <div className="flex flex-col text-left">
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{temp}°C</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 capitalize truncate max-w-[60px] leading-tight">{condition}</span>
+                </div>
+            </div>
+        );
+    };
+
+    const renderWeatherInsight = () => {
+        if (!day.weather || !day.weather.icon.includes('rain')) return null;
+
+        const outdoorActivities = day.activities?.filter(a => a.environment === 'outdoor' || (!a.environment && a.type === 'sightseeing')) || [];
+        if (outdoorActivities.length === 0) return null;
+
+        return (
+            <div className="mt-4 mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800/50 rounded-2xl animate-fade-in relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-1 opacity-10">
+                    <svg className="w-16 h-16 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                </div>
+                <div className="relative z-10 text-left">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="p-1 px-2 bg-amber-500 text-white text-[10px] font-black rounded-lg shadow-sm">AI INSIGHT</span>
+                        <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">Weather Adaptation Needed</h4>
+                    </div>
+                    <p className="text-sm text-amber-800 dark:text-amber-300/80 leading-relaxed">
+                        Rain is expected. Swap <strong>{outdoorActivities[0].name}</strong> with an indoor activity or move it to another day.
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                        <button className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-colors shadow-sm shadow-amber-500/20">
+                            Find Alternative
+                        </button>
+                        <button className="px-3 py-1.5 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-lg border border-amber-200 dark:border-amber-800/50 transition-colors">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div
             id={`day-${day.id}`}
@@ -276,7 +334,7 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
 
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4 sm:mb-6">
-                    <div className="relative">
+                    <div className="relative text-left">
                         {isToday && (
                             <div className="absolute -top-6 left-0 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/30 animate-pulse tracking-wider">
                                 TODAY
@@ -289,28 +347,33 @@ export default function DayCard({ day, onAddActivity, onEditActivity, onToggleAc
                             {format(dateObj, 'EEEE, MMM d')}
                         </p>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={onAddActivity}
-                            className="p-2 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
-                            title="Add Activity"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                        </button>
-                        <button
-                            onClick={onAddPhoto}
-                            className="p-2 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-lg hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors"
-                            title="Add Photo"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        </button>
+                    <div className="flex items-center gap-3">
+                        {renderWeather()}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={onAddActivity}
+                                className="p-2 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+                                title="Add Activity"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                            </button>
+                            <button
+                                onClick={onAddPhoto}
+                                className="p-2 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-lg hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors"
+                                title="Add Photo"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                {renderWeatherInsight()}
 
                 <div className="space-y-2 sm:space-y-4">
                     {timelineItems.length > 0 ? (

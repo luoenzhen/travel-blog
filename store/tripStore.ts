@@ -3,7 +3,8 @@ import { Trip, DayPlan, Activity, TransportationDetails, AccommodationDetails, T
 import { createTrip, getUserTrips, deleteTrip, updateTrip } from '@/lib/firebase/trips';
 import { useAuthStore } from './authStore';
 import { Timestamp } from 'firebase/firestore';
-import { differenceInDays, addDays, format } from 'date-fns';
+import { differenceInDays, addDays, format, parseISO } from 'date-fns';
+import { fetchWeatherForDestination } from '@/lib/weather';
 
 interface TripState {
     trips: Trip[];
@@ -35,6 +36,7 @@ interface TripState {
     updateDayOrder: (tripId: string, dayId: string, newOrder: string[]) => Promise<void>;
     addPhoto: (tripId: string, dayId: string, photo: any) => Promise<void>;
     removePhoto: (tripId: string, dayId: string, photoId: string) => Promise<void>;
+    updateWeather: (tripId: string) => Promise<void>;
     reset: () => void;
 }
 
@@ -1028,6 +1030,38 @@ export const useTripStore = create<TripState>((set, get) => ({
             await updateTrip(tripId, { days: updatedDays });
         } else {
             saveToLocalStorage(get().trips);
+        }
+    },
+
+    updateWeather: async (tripId: string) => {
+        const trip = get().trips.find(t => t.id === tripId);
+        if (!trip || !trip.destination) return;
+
+        try {
+            const dates = trip.days.map(d => {
+                const date = (d.date as any)?.toDate ? (d.date as any).toDate() :
+                    (d.date as any)?.seconds ? new Date((d.date as any).seconds * 1000) :
+                        new Date(d.date as any);
+                return format(date, 'yyyy-MM-dd');
+            });
+
+            const weatherData = await fetchWeatherForDestination(trip.destination, dates);
+
+            const updatedDays = (trip.days || []).map(day => {
+                const date = (day.date as any)?.toDate ? (day.date as any).toDate() :
+                    (day.date as any)?.seconds ? new Date((day.date as any).seconds * 1000) :
+                        new Date(day.date as any);
+                const dateKey = format(date, 'yyyy-MM-dd');
+
+                if (weatherData[dateKey]) {
+                    return { ...day, weather: weatherData[dateKey] };
+                }
+                return day;
+            });
+
+            await get().updateTripDetails(tripId, { days: updatedDays });
+        } catch (error) {
+            console.error('Failed to update weather:', error);
         }
     },
 

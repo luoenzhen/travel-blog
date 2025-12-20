@@ -1,8 +1,7 @@
-'use client';
-
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useEffect } from 'react';
 import { Activity } from '@/types';
 import { CURRENCIES } from '@/lib/constants';
 
@@ -15,6 +14,7 @@ const activitySchema = z.object({
     cost: z.number().min(0, 'Cost must be positive').optional(),
     notes: z.string().optional(),
     imageUrl: z.string().optional(),
+    environment: z.enum(['indoor', 'outdoor', 'both']).optional(),
 });
 
 type ActivityForm = z.infer<typeof activitySchema>;
@@ -48,7 +48,8 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
             endTime: editingActivity.endTime,
             cost: editingActivity.cost,
             notes: editingActivity.notes || '',
-            imageUrl: editingActivity.imageUrl || ''
+            imageUrl: editingActivity.imageUrl || '',
+            environment: editingActivity.environment || 'outdoor'
         } : {
             type: 'sightseeing',
             name: '',
@@ -57,7 +58,8 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
             startTime: '09:00',
             endTime: '11:00',
             notes: '',
-            imageUrl: ''
+            imageUrl: '',
+            environment: 'outdoor'
         }
     });
 
@@ -65,6 +67,23 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
     const activityLocation = watch('location');
     const selectedimageUrl = watch('imageUrl');
     const activityType = watch('type');
+    const selectedType = watch('type');
+    const selectedEnvironment = watch('environment');
+
+    // Auto-detect environment based on name
+    useEffect(() => {
+        if (!activityName || editingActivity) return;
+
+        const indoorKeywords = ['museum', 'gallery', 'restaurant', 'cafe', 'mall', 'shopping', 'indoor', 'cinema', 'theater', 'concert hall', 'dinner', 'breakfast', 'lunch', 'gym', 'spa'];
+        const outdoorKeywords = ['park', 'hike', 'trail', 'beach', 'mountain', 'lake', 'river', 'garden', 'walking', 'exterior', 'landmark', 'viewpoint', 'square', 'plaza'];
+
+        const lowerName = activityName.toLowerCase();
+        if (indoorKeywords.some(k => lowerName.includes(k))) {
+            setValue('environment', 'indoor');
+        } else if (outdoorKeywords.some(k => lowerName.includes(k))) {
+            setValue('environment', 'outdoor');
+        }
+    }, [activityName, setValue, editingActivity]);
 
     const handleAutoFindImage = () => {
         if (!activityName) return;
@@ -93,6 +112,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                 currency: currencyCode,
                 notes: data.notes,
                 imageUrl: data.imageUrl || '',
+                environment: data.environment,
                 bookingRequired: false,
                 photos: []
             });
@@ -103,7 +123,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
         }
     };
 
-    const selectedType = watch('type');
+
 
     if (!isOpen) return null;
 
@@ -152,6 +172,46 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Environment
+                        </label>
+                        <div className="grid grid-cols-3 gap-3">
+                            {(['indoor', 'outdoor', 'both'] as const).map((env) => (
+                                <label
+                                    key={env}
+                                    className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${selectedEnvironment === env
+                                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
+                                        : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 text-gray-500'
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        value={env}
+                                        {...register('environment')}
+                                        className="hidden"
+                                    />
+                                    {env === 'outdoor' && (
+                                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707m12.728 0A9 9 0 115.636 5.636m12.728 12.728L5.636 5.636" />
+                                        </svg>
+                                    )}
+                                    {env === 'indoor' && (
+                                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    )}
+                                    {env === 'both' && (
+                                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    )}
+                                    <span className="text-xs font-bold capitalize">{env}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Activity Name
                         </label>
                         <div className="flex gap-2">
@@ -177,22 +237,24 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                         {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
                     </div>
 
-                    {selectedimageUrl && (
-                        <div className="relative group rounded-xl overflow-hidden aspect-[21/9] border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
-                            <img src={selectedimageUrl} alt="Preview" className="w-full h-full object-cover object-center" />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    type="button"
-                                    onClick={() => setValue('imageUrl', '')}
-                                    className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
+                    {
+                        selectedimageUrl && (
+                            <div className="relative group rounded-xl overflow-hidden aspect-[21/9] border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
+                                <img src={selectedimageUrl} alt="Preview" className="w-full h-full object-cover object-center" />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        type="button"
+                                        onClick={() => setValue('imageUrl', '')}
+                                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
                     <div className="hidden">
                         <input {...register('imageUrl')} />
@@ -289,7 +351,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                             placeholder="Booking ref, helpful tips..."
                         />
                     </div>
-                </form>
+                </form >
 
                 <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex gap-3 bg-gray-50 dark:bg-gray-800/50">
                     <button
