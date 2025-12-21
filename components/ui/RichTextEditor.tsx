@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -21,7 +21,7 @@ interface RichTextEditorProps {
     placeholder?: string;
 }
 
-const MenuBar = ({ editor }: { editor: any }) => {
+const MenuBar = ({ editor }: { editor: Editor | null }) => {
     if (!editor) {
         return null;
     }
@@ -130,7 +130,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Type so
             attributes: {
                 class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[120px] px-4 py-3 text-gray-900 dark:text-white',
             },
-            handlePaste: (view, event) => {
+            handlePaste: () => {
                 return false; // Let default paste handle it
             }
         },
