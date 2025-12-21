@@ -59,6 +59,7 @@ export interface MapProvider {
     attribution: string;
     isChina: boolean;
     subdomains?: string[];
+    tms?: boolean;
 }
 
 export const MAP_PROVIDERS: Record<string, MapProvider> = {
@@ -75,6 +76,14 @@ export const MAP_PROVIDERS: Record<string, MapProvider> = {
         subdomains: ['1', '2', '3', '4'],
         attribution: '&copy; <a href="https://www.amap.com/">Amap</a>',
         isChina: true
+    },
+    TENCENT: {
+        name: '腾讯地图 (Tencent)',
+        url: 'https://rt{s}.map.gtimg.com/tile?z={z}&x={x}&y={y}&styleid=1000&scene=0&version=347',
+        subdomains: ['0', '1', '2', '3'],
+        attribution: '&copy; <a href="https://map.qq.com/">Tencent Map</a>',
+        isChina: true,
+        tms: true
     }
 };
 

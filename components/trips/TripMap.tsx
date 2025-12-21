@@ -183,6 +183,7 @@ export default function TripMap({
                 <TileLayer
                     url={mapConfig.url}
                     subdomains={mapConfig.subdomains || 'abc'}
+                    {...(mapConfig.tms ? { tms: true } : {})}
                 />
 
                 {pins.map(pin => (

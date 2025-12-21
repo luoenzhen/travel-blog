@@ -13,7 +13,7 @@ import CreateTripModal from '@/components/trips/CreateTripModal';
 import BudgetModal from '@/components/trips/BudgetModal';
 import AddPhotoModal from '@/components/trips/AddPhotoModal';
 import { Activity, TransportationDetails, AccommodationDetails, DayPlan, TripBudget, Media } from '@/types';
-import { MapProviderKey } from '@/lib/maps';
+import { MapProviderKey, outOfChina } from '@/lib/maps';
 import { generateMagicDayActivities, geocodeLocations } from '@/lib/ai';
 import dynamic from 'next/dynamic';
 import { Capacitor } from '@capacitor/core';
@@ -140,6 +140,20 @@ export default function TripDetailsPage() {
             },
         })
     );
+
+    // Auto-switch to Chinese map provider if locations are in China
+    useEffect(() => {
+        if (!activeTrip || mapProvider !== 'OSM') return;
+
+        const hasLocationInChina = activeTrip.days.some(day =>
+            day.activities?.some(a => !!a.location?.latitude && !!a.location?.longitude && !outOfChina(a.location.latitude, a.location.longitude)) ||
+            (day.accommodation?.location?.latitude && day.accommodation?.location?.longitude && !outOfChina(day.accommodation.location.latitude, day.accommodation.location.longitude))
+        );
+
+        if (hasLocationInChina) {
+            setMapProvider('TENCENT');
+        }
+    }, [activeTrip, mapProvider]);
 
     const mapOverlayInfo = useMemo(() => {
         if (customMapLocation) {
@@ -1095,6 +1109,7 @@ export default function TripDetailsPage() {
                                     >
                                         <option value="OSM">OSM</option>
                                         <option value="AMAP">Amap</option>
+                                        <option value="TENCENT">Tencent</option>
                                     </select>
                                 </div>
 
