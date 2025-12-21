@@ -287,22 +287,7 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Start Date
                             </label>
-                            <div className="relative cursor-pointer group" onClick={() => {
-                                try {
-                                    if (startDateRef.current) {
-                                        startDateRef.current.showPicker();
-                                    }
-                                } catch {
-                                    // Fallback for older browsers
-                                    startDateRef.current?.click();
-                                }
-                            }}>
-                                <div className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between group-hover:border-primary-500 transition-colors pointer-events-none">
-                                    <span className="text-gray-900 dark:text-gray-100">{formatDate(startDate) || 'dd-Mon-yyyy'}</span>
-                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
+                            <div className="relative group">
                                 <input
                                     ref={startDateRef}
                                     type="date"
@@ -311,9 +296,14 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
                                         setStartDate(e.target.value);
                                         setValue('startDate', e.target.value);
                                     }}
-                                    className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-                                    tabIndex={-1}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 />
+                                <div className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between group-hover:border-primary-500 transition-colors">
+                                    <span className="text-gray-900 dark:text-gray-100">{formatDate(startDate) || 'dd-Mon-yyyy'}</span>
+                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
                             </div>
                             {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate.message}</p>}
                         </div>
@@ -322,21 +312,7 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 End Date
                             </label>
-                            <div className="relative cursor-pointer group" onClick={() => {
-                                try {
-                                    if (endDateRef.current) {
-                                        endDateRef.current.showPicker();
-                                    }
-                                } catch {
-                                    endDateRef.current?.click();
-                                }
-                            }}>
-                                <div className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between group-hover:border-primary-500 transition-colors pointer-events-none">
-                                    <span className="text-gray-900 dark:text-gray-100">{formatDate(endDate) || 'dd-Mon-yyyy'}</span>
-                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
+                            <div className="relative group">
                                 <input
                                     ref={endDateRef}
                                     type="date"
@@ -345,9 +321,14 @@ export default function CreateTripModal({ isOpen, onClose, tripToEdit }: CreateT
                                         setEndDate(e.target.value);
                                         setValue('endDate', e.target.value);
                                     }}
-                                    className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-                                    tabIndex={-1}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 />
+                                <div className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between group-hover:border-primary-500 transition-colors">
+                                    <span className="text-gray-900 dark:text-gray-100">{formatDate(endDate) || 'dd-Mon-yyyy'}</span>
+                                    <svg className="w-5 h-5 text-gray-400 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
                             </div>
                             {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate.message}</p>}
                         </div>
