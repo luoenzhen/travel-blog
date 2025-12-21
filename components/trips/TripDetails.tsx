@@ -1269,7 +1269,7 @@ export default function TripDetailsPage() {
                 <div id="itinerary-content" className={`container mx-auto transition-all duration-500 ${activeTab === 'map' ? 'p-0 max-w-none' : 'px-2 sm:px-4 py-4 sm:py-8'} ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
                     <div className={`flex flex-col lg:flex-row ${activeTab === 'map' ? 'gap-0' : 'gap-6 sm:gap-8'} lg:h-[calc(100vh-220px)] lg:overflow-hidden`}>
                         {/* Left: Day List */}
-                        <div ref={itineraryContainerRef} className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'} lg:overflow-y-auto lg:h-full lg:pr-2 scrollbar-thin`}>
+                        <div ref={itineraryContainerRef} className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'} lg:overflow-y-auto lg:h-full lg:pr-2 scrollbar-thin snap-y snap-mandatory`}>
                             <div className="flex items-center justify-between px-1 sm:px-0 gap-2">
                                 <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
 
@@ -1279,7 +1279,7 @@ export default function TripDetailsPage() {
                                 {processedDays && processedDays.length > 0 ? (
                                     processedDays.map((day) => (
                                         <DroppableDay key={day.id} dayId={day.id}>
-                                            <div id={`day-${day.id}`}>
+                                            <div id={`day-${day.id}`} className="snap-start scroll-mt-24">
                                                 <DayCard
                                                     day={day}
                                                     onAddActivity={() => handleAddActivityClick(day.id)}
