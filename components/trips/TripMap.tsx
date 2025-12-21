@@ -92,33 +92,45 @@ export default function TripMap({
     const activeStays = Array.from(new Map(rawStays.map(s => [s.id, s])).values());
 
     const pins = [
-        ...activeActivities.map(a => {
-            const [lat, lng] = provider === 'BAIDU'
-                ? wgs84ToBd09(a.location.latitude, a.location.longitude)
-                : (mapConfig.isChina ? wgs84ToGcj02(a.location.latitude, a.location.longitude) : [a.location.latitude, a.location.longitude]);
-            return {
-                id: a.id,
-                type: 'activity' as const,
-                name: a.name,
-                lat,
-                lng,
-                category: a.type
-            };
-        }),
-        ...activeStays.map(s => {
-            const [lat, lng] = provider === 'BAIDU'
-                ? wgs84ToBd09(s.location.latitude, s.location.longitude)
-                : (mapConfig.isChina ? wgs84ToGcj02(s.location.latitude, s.location.longitude) : [s.location.latitude, s.location.longitude]);
-            return {
-                id: s.id,
-                type: 'stay' as const,
-                name: s.name,
-                lat,
-                lng,
-                category: 'accommodation'
-            };
-        })
-    ].filter(p => typeof p.lat === 'number' && typeof p.lng === 'number' && (Math.abs(p.lat) > 0.0001 || Math.abs(p.lng) > 0.0001));
+        ...activeActivities
+            .filter(a => a.location && typeof a.location.latitude === 'number' && typeof a.location.longitude === 'number')
+            .map(a => {
+                const [lat, lng] = provider === 'BAIDU'
+                    ? wgs84ToBd09(a.location.latitude, a.location.longitude)
+                    : (mapConfig.isChina ? wgs84ToGcj02(a.location.latitude, a.location.longitude) : [a.location.latitude, a.location.longitude]);
+                return {
+                    id: a.id,
+                    type: 'activity' as const,
+                    name: a.name,
+                    lat,
+                    lng,
+                    category: a.type
+                };
+            }),
+        ...activeStays
+            .filter(s => s.location && typeof s.location.latitude === 'number' && typeof s.location.longitude === 'number')
+            .map(s => {
+                const [lat, lng] = provider === 'BAIDU'
+                    ? wgs84ToBd09(s.location.latitude, s.location.longitude)
+                    : (mapConfig.isChina ? wgs84ToGcj02(s.location.latitude, s.location.longitude) : [s.location.latitude, s.location.longitude]);
+                return {
+                    id: s.id,
+                    type: 'stay' as const,
+                    name: s.name,
+                    lat,
+                    lng,
+                    category: 'accommodation'
+                };
+            })
+    ].filter(p => 
+        typeof p.lat === 'number' && 
+        typeof p.lng === 'number' && 
+        !isNaN(p.lat) && 
+        !isNaN(p.lng) &&
+        isFinite(p.lat) &&
+        isFinite(p.lng) &&
+        (Math.abs(p.lat) > 0.0001 || Math.abs(p.lng) > 0.0001)
+    );
 
     const bounds = pins.length > 0 ? pins.map(p => [p.lat, p.lng]) : [[0, 0]];
 

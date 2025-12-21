@@ -140,10 +140,24 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
 
     const onSubmit = async (data: ActivityForm) => {
         try {
+            // Preserve existing coordinates when editing, or set to 0,0 for geocoding
+            const existingLocation = editingActivity?.location;
+            const locationData = {
+                name: data.location,
+                latitude: existingLocation?.latitude ?? 0,
+                longitude: existingLocation?.longitude ?? 0
+            };
+            
+            // If location name changed or coordinates are invalid, set to 0,0 to trigger geocoding
+            if (editingActivity && data.location !== editingActivity.location.name) {
+                locationData.latitude = 0;
+                locationData.longitude = 0;
+            }
+            
             await onSave({
                 type: data.type,
                 name: data.name,
-                location: { name: data.location, latitude: 0, longitude: 0 }, // Placeholder for now
+                location: locationData,
                 startTime: formatTimeForSave(data.startTime),
                 endTime: formatTimeForSave(data.endTime),
                 cost: data.cost || 0,
@@ -151,8 +165,8 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                 notes: data.notes,
                 imageUrl: data.imageUrl || '',
                 environment: data.environment,
-                bookingRequired: false,
-                photos: []
+                bookingRequired: editingActivity?.bookingRequired ?? false,
+                photos: editingActivity?.photos ?? []
             });
             reset();
             onClose();

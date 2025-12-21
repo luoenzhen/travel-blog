@@ -476,11 +476,31 @@ export default function TripDetailsPage() {
     const handleSaveActivity = async (activityData: Partial<Activity>) => {
         if (!activeTrip || !activeDayId) return;
 
-        // Auto-geocode if missing
-        if (activityData.location && (!activityData.location.latitude || !activityData.location.longitude)) {
-            const coords = await geocodeLocations([activityData.location.name]);
-            if (coords[activityData.location.name]) {
-                activityData.location = { ...activityData.location, ...coords[activityData.location.name] };
+        // Auto-geocode if missing or invalid (0,0 coordinates)
+        if (activityData.location && activityData.location.name) {
+            const needsGeocoding = 
+                !activityData.location.latitude || 
+                !activityData.location.longitude ||
+                (activityData.location.latitude === 0 && activityData.location.longitude === 0);
+            
+            if (needsGeocoding) {
+                try {
+                    const coords = await geocodeLocations([activityData.location.name]);
+                    if (coords && coords[activityData.location.name]) {
+                        const geocoded = coords[activityData.location.name];
+                        // Only update if we got valid coordinates
+                        if (geocoded.latitude !== 0 || geocoded.longitude !== 0) {
+                            activityData.location = { 
+                                ...activityData.location, 
+                                latitude: geocoded.latitude,
+                                longitude: geocoded.longitude
+                            };
+                        }
+                    }
+                } catch (error) {
+                    console.error("Auto-geocode failed for activity:", error);
+                    // Continue saving even if geocoding fails
+                }
             }
         }
 
