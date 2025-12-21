@@ -812,7 +812,7 @@ export default function TripDetailsPage() {
                         } else {
                             // Mobile / Window Scroll
                             const rect = el.getBoundingClientRect();
-                            const offset = window.innerWidth < 640 ? 80 : 120;
+                            const offset = window.innerWidth < 640 ? 200 : 240;
                             const top = window.pageYOffset + rect.top - offset;
                             window.scrollTo({ top, behavior: 'smooth' });
                         }
@@ -881,7 +881,7 @@ export default function TripDetailsPage() {
                         const relativeTop = element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
                         container.scrollTo({ top: relativeTop - 20, behavior: 'smooth' });
                     } else {
-                        const offset = window.innerWidth < 640 ? 80 : 120;
+                        const offset = window.innerWidth < 640 ? 200 : 240;
                         const top = element.getBoundingClientRect().top + window.scrollY - offset;
                         window.scrollTo({ top, behavior: 'smooth' });
                     }
@@ -916,7 +916,7 @@ export default function TripDetailsPage() {
                         const relativeTop = element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
                         container.scrollTo({ top: relativeTop - 20, behavior: 'auto' });
                     } else {
-                        const offset = window.innerWidth < 640 ? 80 : 120;
+                        const offset = window.innerWidth < 640 ? 200 : 240;
                         const top = element.getBoundingClientRect().top + window.scrollY - offset;
                         window.scrollTo({ top, behavior: 'auto' });
                     }
@@ -1309,7 +1309,7 @@ export default function TripDetailsPage() {
                                 {processedDays && processedDays.length > 0 ? (
                                     processedDays.map((day) => (
                                         <DroppableDay key={day.id} dayId={day.id}>
-                                            <div id={`day-${day.id}`} className="snap-start scroll-mt-24">
+                                            <div id={`day-${day.id}`} className="snap-start scroll-mt-48 sm:scroll-mt-56">
                                                 <DayCard
                                                     day={day}
                                                     onAddActivity={() => handleAddActivityClick(day.id)}

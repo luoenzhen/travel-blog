@@ -359,15 +359,17 @@ export default function DayCard({
                     className="flex justify-between items-start mb-4 sm:mb-6 cursor-pointer group"
                     onClick={() => onDayClick?.()}
                 >
-                    <div className="relative text-left group-hover:opacity-80 transition-opacity">
-                        {isToday && (
-                            <div className="absolute -top-6 left-0 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/30 animate-pulse tracking-wider">
-                                TODAY
-                            </div>
-                        )}
-                        <h3 className={`text-lg font-bold transition-colors duration-500 ${hoveredImage ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-                            Day {day.dayNumber}
-                        </h3>
+                    <div className="relative text-left group-hover:opacity-80 transition-opacity flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                            <h3 className={`text-lg font-bold transition-colors duration-500 ${hoveredImage ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                                Day {day.dayNumber}
+                            </h3>
+                            {isToday && (
+                                <span className="bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow shadow-amber-500/20 animate-pulse tracking-wider uppercase h-fit">
+                                    Today
+                                </span>
+                            )}
+                        </div>
                         <p className={`font-medium transition-colors duration-500 ${hoveredImage ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
                             {format(dateObj, 'EEEE, MMM d')}
                         </p>
