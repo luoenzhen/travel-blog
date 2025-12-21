@@ -3,6 +3,7 @@
 import { Trip } from '@/types';
 import { format, differenceInDays } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
+import { TravelBlogLogo } from '@/components/ui/TravelBlogLogo';
 
 import { MouseEvent } from 'react';
 
@@ -74,9 +75,7 @@ export default function TripCard({ trip, onClick, onToggleLock, onDelete }: Trip
 
             <div className="flex justify-between items-start mb-4">
                 <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400 group-hover:bg-primary-500 group-hover:text-white transition-colors">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <TravelBlogLogo className="w-6 h-6" />
                 </div>
                 <div className="text-xs font-medium px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg">
                     {duration} Days

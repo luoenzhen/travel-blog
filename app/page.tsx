@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { TravelBlogLogo } from "@/components/ui/TravelBlogLogo";
 
 export default function Home() {
     const router = useRouter();
@@ -25,14 +26,12 @@ export default function Home() {
             <div className="text-center max-w-4xl mx-auto space-y-8 animate-fade-in relative z-10 px-4">
                 <div className="inline-block relative">
                     <div className="flex items-center justify-center w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-[2rem] shadow-2xl shadow-primary-500/20 transform animate-scale-in">
-                        <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <TravelBlogLogo className="w-14 h-14 text-white" />
                     </div>
                 </div>
 
                 <div className="space-y-4">
-                    <h1 className="text-6xl md:text-8xl font-display font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent animate-slide-up">
+                    <h1 className="text-6xl md:text-8xl font-display font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent animate-slide-up pb-2 leading-tight">
                         TravelBlog
                     </h1>
 
