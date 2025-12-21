@@ -20,6 +20,7 @@ import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
+import TripCalendar from './TripCalendar';
 const TripMap = dynamic(() => import('./TripMap'), { ssr: false });
 import {
     DndContext,
@@ -112,7 +113,7 @@ export default function TripDetailsPage() {
     const [customMapLocation, setCustomMapLocation] = useState<{ lat: number; lng: number; name?: string; } | null>(null);
     const [lastGeneratedIds, setLastGeneratedIds] = useState<Record<string, string[]>>({});
     const [showMap, setShowMap] = useState(false);
-    const [activeTab, setActiveTab] = useState<'itinerary' | 'transport' | 'stay' | 'map'>('itinerary');
+    const [activeTab, setActiveTab] = useState<'itinerary' | 'transport' | 'stay' | 'map' | 'calendar'>('itinerary');
     const [mapProvider, setMapProvider] = useState<MapProviderKey>('OSM');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const isProgrammaticScroll = useRef(false);
@@ -1296,7 +1297,37 @@ export default function TripDetailsPage() {
                 </div>
 
                 {/* Main Content - Itinerary & Map Split View */}
-                <div id="itinerary-content" className={`container mx-auto transition-all duration-500 ${activeTab === 'map' ? 'p-0 max-w-none' : 'px-2 sm:px-4 py-4 sm:py-8'} ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
+                {activeTab === 'calendar' && (
+                    <div className="container mx-auto px-0 sm:px-4 py-4 h-[calc(100vh-140px)]">
+                        <TripCalendar
+                            trip={activeTrip}
+                            onDayClick={(dayId) => setActiveDayId(dayId)}
+                            selectedDayId={activeDayId}
+                        >
+                            {activeDayId && processedDays.filter((d: DayPlan) => d.id === activeDayId).map((day: DayPlan) => (
+                                <DayCard
+                                    key={day.id}
+                                    day={day}
+                                    onAddActivity={() => handleAddActivityClick(day.id)}
+                                    onEditActivity={(activity) => handleEditActivityClick(day.id, activity)}
+                                    onToggleActivityLock={(activityId) => handleToggleActivityLock(day.id, activityId)}
+                                    onAddPhoto={() => handleAddPhotoClick(day.id)}
+                                    onRemovePhoto={(photoId) => handleRemovePhoto(day.id, photoId)}
+                                    onUndo={() => handleUndoMagic(day.id)}
+                                    showUndo={!!lastGeneratedIds[day.id]}
+                                    onOptimize={() => handleOptimizeRoute(day.id)}
+                                    onLocationClick={handleLocationClick}
+                                    onDayClick={() => {
+                                        setActiveDayId(day.id);
+                                        setFocusedActivityId(null);
+                                        setCustomMapLocation(null);
+                                    }}
+                                />
+                            ))}
+                        </TripCalendar>
+                    </div>
+                )}
+                <div id="itinerary-content" className={`container mx-auto transition-all duration-500 ${activeTab === 'calendar' ? 'hidden' : ''} ${activeTab === 'map' ? 'p-0 max-w-none' : 'px-2 sm:px-4 py-4 sm:py-8'} ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
                     <div className={`flex flex-col lg:flex-row ${activeTab === 'map' ? 'gap-0' : 'gap-6 sm:gap-8'} lg:h-[calc(100vh-220px)] lg:overflow-hidden`}>
                         {/* Left: Day List */}
                         <div ref={itineraryContainerRef} className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'} lg:overflow-y-auto lg:h-full lg:pr-2 scrollbar-thin snap-y snap-mandatory`}>
@@ -1456,6 +1487,16 @@ export default function TripDetailsPage() {
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                             <span className="text-[10px] font-bold">Stay</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowMap(false);
+                                setActiveTab('calendar');
+                            }}
+                            className={`flex flex-col items-center gap-1 ${activeTab === 'calendar' ? 'text-primary-600' : 'text-gray-400'}`}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            <span className="text-[10px] font-bold">Calendar</span>
                         </button>
                         <button
                             onClick={() => {
