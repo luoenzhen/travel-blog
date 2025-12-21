@@ -50,7 +50,7 @@ function DraggableMagicWand({ isGenerating }: { isGenerating: boolean }) {
             {...listeners}
             {...attributes}
             disabled={isGenerating}
-            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all group/magic disabled:opacity-50 cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : 'animate-bounce-subtle'}`}
+            className={`flex items-center justify-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all group/magic disabled:opacity-50 cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : 'animate-bounce-subtle'}`}
             title="Drag me to a day to generate magic activities!"
         >
             {isGenerating ? (
@@ -60,7 +60,7 @@ function DraggableMagicWand({ isGenerating }: { isGenerating: boolean }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
             )}
-            <span className="text-xs font-bold whitespace-nowrap">Magic Wand</span>
+            <span className="text-xs font-bold whitespace-nowrap hidden sm:inline">Magic Wand</span>
         </button>
     );
 }
@@ -478,11 +478,11 @@ export default function TripDetailsPage() {
 
         // Auto-geocode if missing or invalid (0,0 coordinates)
         if (activityData.location && activityData.location.name) {
-            const needsGeocoding = 
-                !activityData.location.latitude || 
+            const needsGeocoding =
+                !activityData.location.latitude ||
                 !activityData.location.longitude ||
                 (activityData.location.latitude === 0 && activityData.location.longitude === 0);
-            
+
             if (needsGeocoding) {
                 try {
                     const coords = await geocodeLocations([activityData.location.name]);
@@ -490,8 +490,8 @@ export default function TripDetailsPage() {
                         const geocoded = coords[activityData.location.name];
                         // Only update if we got valid coordinates
                         if (geocoded.latitude !== 0 || geocoded.longitude !== 0) {
-                            activityData.location = { 
-                                ...activityData.location, 
+                            activityData.location = {
+                                ...activityData.location,
                                 latitude: geocoded.latitude,
                                 longitude: geocoded.longitude
                             };
@@ -1078,7 +1078,8 @@ export default function TripDetailsPage() {
                                         title="Auto-fix missing map coordinates"
                                     >
                                         <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                         </svg>
                                         <span>Locations</span>
                                     </button>
@@ -1096,7 +1097,7 @@ export default function TripDetailsPage() {
                                             setShowMap(false);
                                         }
                                     }}
-                                    className={`p-1.5 sm:p-2 rounded-lg border border-gray-100 dark:border-gray-700 transition-colors flex items-center gap-1.5 ${activeTab === 'calendar' ? 'bg-primary-50 text-primary-600 border-primary-100' : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600'}`}
+                                    className={`hidden sm:flex p-1.5 sm:p-2 rounded-lg border border-gray-100 dark:border-gray-700 transition-colors items-center gap-1.5 ${activeTab === 'calendar' ? 'bg-primary-50 text-primary-600 border-primary-100' : 'bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600'}`}
                                     title="Calendar View"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1117,7 +1118,7 @@ export default function TripDetailsPage() {
                                         title="Toggle Map View"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.106-1.789L9 2m6 18l5.447-2.724A2 2 0 0021 15.382V6.618a2 2 0 00-1.106-1.789L15 2m-6 18V2m6 18V2" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 6.75V15m6-6v8.25m.503 3.446 4.874-2.437c.381-.19.623-.579.623-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.254a1.125 1.125 0 0 0-1.006 0L3.623 5.754c-.38.19-.623.579-.623 1.006v11.182c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
                                         </svg>
                                         <span className="text-xs font-bold hidden sm:inline">Map</span>
                                     </button>
@@ -1559,7 +1560,9 @@ export default function TripDetailsPage() {
                             }}
                             className={`flex flex-col items-center gap-1 ${activeTab === 'map' ? 'text-primary-600' : 'text-gray-400'}`}
                         >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V6.618a2 2 0 011.106-1.789L9 2m6 18l5.447-2.724A2 2 0 0021 15.382V6.618a2 2 0 00-1.106-1.789L15 2m-6 18V2m6 18V2" /></svg>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 6.75V15m6-6v8.25m.503 3.446 4.874-2.437c.381-.19.623-.579.623-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.254a1.125 1.125 0 0 0-1.006 0L3.623 5.754c-.38.19-.623.579-.623 1.006v11.182c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+                            </svg>
                             <span className="text-[10px] font-bold">Map</span>
                         </button>
                     </div>
