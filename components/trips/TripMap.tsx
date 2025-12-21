@@ -156,11 +156,11 @@ export default function TripMap({
                 center={center as [number, number]}
                 zoom={13}
                 scrollWheelZoom={true}
+                attributionControl={false}
                 className="h-full w-full rounded-2xl overflow-hidden shadow-inner border border-gray-200 dark:border-gray-700"
             >
                 <TileLayer
                     url={mapConfig.url}
-                    attribution={mapConfig.attribution}
                     subdomains={mapConfig.subdomains || 'abc'}
                 />
 

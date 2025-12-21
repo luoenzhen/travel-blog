@@ -95,6 +95,12 @@
   @apply transition-colors duration-200;
 }
 
+/* Hide Leaflet attribution and logo */
+.leaflet-control-attribution,
+.leaflet-bottom.leaflet-right {
+  display: none !important;
+}
+
 /* Mobile-first responsive utilities */
 @media (max-width: 640px) {
   .mobile-padding {
