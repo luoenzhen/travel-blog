@@ -113,6 +113,7 @@ export default function TripDetailsPage() {
     const [mapProvider, setMapProvider] = useState<MapProviderKey>('OSM');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const isProgrammaticScroll = useRef(false);
+    const itineraryContainerRef = useRef<HTMLDivElement>(null);
 
     // Auto-dismiss error toast
     useEffect(() => {
@@ -785,25 +786,35 @@ export default function TripDetailsPage() {
             });
 
             if (todayDay) {
-                const element = document.getElementById(`day-${todayDay.id}`);
-                if (element) {
-                    setHasInitialScrolled(true);
+                setHasInitialScrolled(true);
 
-                    const performScroll = () => {
-                        const el = document.getElementById(`day-${todayDay.id}`);
-                        if (el) {
+                const performScroll = () => {
+                    const el = document.getElementById(`day-${todayDay.id}`);
+                    if (el) {
+                        const container = itineraryContainerRef.current;
+                        if (container && window.innerWidth >= 1024) { // Desktop
+                            isProgrammaticScroll.current = true;
+                            // Calculate relative position within container
+                            const top = el.offsetTop - container.offsetTop;
+                            // Note: offsetTop is relative to offsetParent. If container is relative/absolute, this works.
+                            // Better: el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop
+                            const relativeTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+                            container.scrollTo({ top: relativeTop - 20, behavior: 'smooth' }); // -20 padding
+                            setTimeout(() => { isProgrammaticScroll.current = false; }, 1000);
+                        } else {
+                            // Mobile / Window Scroll
                             const rect = el.getBoundingClientRect();
-                            const offset = window.innerWidth < 640 ? 80 : 120; // Header height approximation
+                            const offset = window.innerWidth < 640 ? 80 : 120;
                             const top = window.pageYOffset + rect.top - offset;
                             window.scrollTo({ top, behavior: 'smooth' });
                         }
-                    };
+                    }
+                };
 
-                    // Multiple attempts as the page reaches its final layout
-                    setTimeout(performScroll, 500);
-                    setTimeout(performScroll, 1200);
-                    setTimeout(performScroll, 2500);
-                }
+                // Multiple attempts as the page reaches its final layout
+                setTimeout(performScroll, 500);
+                setTimeout(performScroll, 1200);
+                setTimeout(performScroll, 2500);
             }
         }
     }, [isInitializing, loading, hasInitialScrolled, processedDays]);
@@ -871,9 +882,16 @@ export default function TripDetailsPage() {
                 const element = document.getElementById(`day-${activeDayId}`);
                 if (element) {
                     isProgrammaticScroll.current = true;
-                    const offset = window.innerWidth < 640 ? 80 : 120;
-                    const top = element.getBoundingClientRect().top + window.scrollY - offset;
-                    window.scrollTo({ top, behavior: 'auto' });
+                    const container = itineraryContainerRef.current;
+
+                    if (container && window.innerWidth >= 1024) {
+                        const relativeTop = element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+                        container.scrollTo({ top: relativeTop - 20, behavior: 'auto' });
+                    } else {
+                        const offset = window.innerWidth < 640 ? 80 : 120;
+                        const top = element.getBoundingClientRect().top + window.scrollY - offset;
+                        window.scrollTo({ top, behavior: 'auto' });
+                    }
                     setTimeout(() => { isProgrammaticScroll.current = false; }, 1000);
                 }
             }, 50);
@@ -1202,10 +1220,10 @@ export default function TripDetailsPage() {
                 </div>
 
                 {/* Main Content - Itinerary & Map Split View */}
-                <div id="itinerary-content" className={`container mx-auto transition-all duration-500 overflow-x-hidden ${activeTab === 'map' ? 'p-0 max-w-none' : 'px-2 sm:px-4 py-4 sm:py-8'} ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
-                    <div className={`flex flex-col lg:flex-row min-h-[calc(100vh-200px)] ${activeTab === 'map' ? 'gap-0' : 'gap-6 sm:gap-8'}`}>
+                <div id="itinerary-content" className={`container mx-auto transition-all duration-500 ${activeTab === 'map' ? 'p-0 max-w-none' : 'px-2 sm:px-4 py-4 sm:py-8'} ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
+                    <div className={`flex flex-col lg:flex-row ${activeTab === 'map' ? 'gap-0' : 'gap-6 sm:gap-8'} lg:h-[calc(100vh-220px)] lg:overflow-hidden`}>
                         {/* Left: Day List */}
-                        <div className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'}`}>
+                        <div ref={itineraryContainerRef} className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'} lg:overflow-y-auto lg:h-full lg:pr-2 scrollbar-thin`}>
                             <div className="flex items-center justify-between px-1 sm:px-0 gap-2">
                                 <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
 
@@ -1245,7 +1263,7 @@ export default function TripDetailsPage() {
                         </div>
 
                         {/* Right: Sticky Content Pane (Map or Sidebar) */}
-                        <div className={`lg:sticky lg:top-24 lg:h-[calc(100vh-120px)] w-full lg:w-[45%] xl:w-[40%] transition-all duration-500 ${activeTab !== 'itinerary' ? 'block' : 'hidden lg:block'} ${activeTab === 'map' ? 'p-0' : 'pb-24 lg:pb-0'}`}>
+                        <div className={`w-full lg:w-[45%] xl:w-[40%] transition-all duration-500 ${activeTab !== 'itinerary' ? 'block' : 'hidden lg:block'} ${activeTab === 'map' ? 'p-0' : 'pb-24 lg:pb-0'} lg:h-full lg:overflow-hidden`}>
                             {showMap ? (
                                 <TripMap
                                     activities={activeTrip.days.flatMap(d => (d.activities || []).map(a => ({ ...a, dayId: d.id })))}
