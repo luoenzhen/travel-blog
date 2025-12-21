@@ -127,7 +127,10 @@ export default function TripMap({
 
     if (customLocation) {
         // Priority to custom location (search result)
-        focusedLocation = [customLocation.lat, customLocation.lng];
+        const [lat, lng] = provider === 'BAIDU'
+            ? wgs84ToBd09(customLocation.lat, customLocation.lng)
+            : (mapConfig.isChina ? wgs84ToGcj02(customLocation.lat, customLocation.lng) : [customLocation.lat, customLocation.lng]);
+        focusedLocation = [lat, lng];
     } else if (focusedId) {
         const focusedPin = pins.find(p => p.id === focusedId);
         if (focusedPin) {
@@ -207,9 +210,9 @@ export default function TripMap({
                     </Marker>
                 ))}
 
-                {customLocation && (
+                {customLocation && focusedLocation && (
                     <Marker
-                        position={[customLocation.lat, customLocation.lng]}
+                        position={focusedLocation}
                         icon={getIcon('custom', 'search', true)}
                     >
                         <Popup>

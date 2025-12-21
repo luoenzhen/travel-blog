@@ -103,16 +103,14 @@ export const MAP_PROVIDERS: Record<string, MapProvider> = {
         url: 'https://rt{s}.map.gtimg.com/tile?z={z}&x={x}&y={y}&styleid=1000&scene=0&version=347',
         subdomains: ['0', '1', '2', '3'],
         attribution: '&copy; <a href="https://map.qq.com/">Tencent Map</a>',
-        isChina: true,
-        tms: true
+        isChina: true
     },
     BAIDU: {
         name: '百度地图 (Baidu)',
         url: 'https://maponline{s}.bdimg.com/onlinelabel/?qt=tile&x={x}&y={y}&z={z}&styles=pl&scaler=1&p=1',
         subdomains: ['0', '1', '2', '3'],
         attribution: '&copy; <a href="https://map.baidu.com/">Baidu Map</a>',
-        isChina: true,
-        crs: 'Baidu'
+        isChina: true
     }
 };
 

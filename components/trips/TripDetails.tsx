@@ -150,8 +150,8 @@ export default function TripDetailsPage() {
             (day.accommodation?.location?.latitude && day.accommodation?.location?.longitude && !outOfChina(day.accommodation.location.latitude, day.accommodation.location.longitude))
         );
 
-        if (hasLocationInChina) {
-            setMapProvider('TENCENT');
+        if (hasLocationInChina && mapProvider === 'OSM') {
+            setMapProvider('AMAP');
         }
     }, [activeTrip, mapProvider]);
 

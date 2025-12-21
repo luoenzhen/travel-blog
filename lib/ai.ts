@@ -211,8 +211,11 @@ export async function geocodeLocations(locationNames: string[]): Promise<Record<
     
     Rules:
     1. Only return JSON.
-    2. Be as accurate as possible.
-    3. If a location is vague, provide coordinates for the center of its city.`;
+    2. Be as accurate as possible. MUST provide the most precise coordinates (up to 6 decimal places).
+    3. Use standard GPS coordinates (WGS-84).
+    4. If a location is vague, provide coordinates for the center of its city.
+    5. VERY IMPORTANT: Research the exact street address for each venue to minimize error.
+    `;
 
     try {
         const result = await model.generateContent([prompt]);
