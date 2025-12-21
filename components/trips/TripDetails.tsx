@@ -117,6 +117,12 @@ export default function TripDetailsPage() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const isProgrammaticScroll = useRef(false);
     const itineraryContainerRef = useRef<HTMLDivElement>(null);
+    const activeDayIdRef = useRef<string | null>(null);
+
+    // Keep ref in sync
+    useEffect(() => {
+        activeDayIdRef.current = activeDayId;
+    }, [activeDayId]);
 
     // Auto-dismiss error toast
     useEffect(() => {
@@ -842,7 +848,7 @@ export default function TripDetailsPage() {
                     }
                 });
             },
-            { threshold: 0.3, rootMargin: '-10% 0px -70% 0px' }
+            { threshold: 0.3, rootMargin: '-10% 0px -50% 0px' }
         );
 
         const dayElements = document.querySelectorAll('[id^="day-"]');
@@ -855,9 +861,6 @@ export default function TripDetailsPage() {
         isProgrammaticScroll.current = true;
         setFocusedActivityId(id);
 
-        // Reset flag after scroll/animation
-        setTimeout(() => { isProgrammaticScroll.current = false; }, 1000);
-
         // Find which day this item belongs to and update activeDayId
         const dayWithItem = activeTrip?.days.find(d =>
             (type === 'activity' && d.activities?.some(a => a.id === id)) ||
@@ -866,6 +869,28 @@ export default function TripDetailsPage() {
 
         if (dayWithItem) {
             setActiveDayId(dayWithItem.id);
+
+            // Explicitly scroll to the day for seamless navigation
+            setTimeout(() => {
+                const element = document.getElementById(`day-${dayWithItem.id}`);
+                const container = itineraryContainerRef.current;
+
+                if (element) {
+                    isProgrammaticScroll.current = true;
+                    if (container && window.innerWidth >= 1024) {
+                        const relativeTop = element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+                        container.scrollTo({ top: relativeTop - 20, behavior: 'smooth' });
+                    } else {
+                        const offset = window.innerWidth < 640 ? 80 : 120;
+                        const top = element.getBoundingClientRect().top + window.scrollY - offset;
+                        window.scrollTo({ top, behavior: 'smooth' });
+                    }
+                    setTimeout(() => { isProgrammaticScroll.current = false; }, 1000);
+                }
+            }, 50);
+        } else {
+            // Reset flag if no scroll needed
+            setTimeout(() => { isProgrammaticScroll.current = false; }, 1000);
         }
 
         // Highlight the card if visible
@@ -878,10 +903,11 @@ export default function TripDetailsPage() {
 
     // Scroll to active day when switching to itinerary tab
     useEffect(() => {
-        if (activeTab === 'itinerary' && activeDayId) {
+        if (activeTab === 'itinerary' && activeDayIdRef.current) {
+            const targetId = activeDayIdRef.current;
             // Short timeout to allow layout to settle (e.g. from hidden state)
             setTimeout(() => {
-                const element = document.getElementById(`day-${activeDayId}`);
+                const element = document.getElementById(`day-${targetId}`);
                 if (element) {
                     isProgrammaticScroll.current = true;
                     const container = itineraryContainerRef.current;
@@ -898,7 +924,7 @@ export default function TripDetailsPage() {
                 }
             }, 50);
         }
-    }, [activeTab, activeDayId]);
+    }, [activeTab]);
 
     const handleLocationClick = async (itemId: string) => {
         // Find which day this item (activity or stay) belongs to
@@ -1198,6 +1224,27 @@ export default function TripDetailsPage() {
                                             </svg>
                                             <span>{format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}</span>
                                         </div>
+                                        {/* Utility Buttons */}
+                                        <div className="flex items-center gap-1 ml-auto sm:ml-2">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); updateWeather(tripId); }}
+                                                className="p-1 text-gray-400 hover:text-primary-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                title="Weather"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleSyncLocations(); }}
+                                                className="p-1 text-amber-600 hover:text-amber-700 rounded hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                                title="Sync Locations"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
@@ -1252,7 +1299,7 @@ export default function TripDetailsPage() {
                 <div id="itinerary-content" className={`container mx-auto transition-all duration-500 ${activeTab === 'map' ? 'p-0 max-w-none' : 'px-2 sm:px-4 py-4 sm:py-8'} ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
                     <div className={`flex flex-col lg:flex-row ${activeTab === 'map' ? 'gap-0' : 'gap-6 sm:gap-8'} lg:h-[calc(100vh-220px)] lg:overflow-hidden`}>
                         {/* Left: Day List */}
-                        <div ref={itineraryContainerRef} className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'} lg:overflow-y-auto lg:h-full lg:pr-2 scrollbar-thin`}>
+                        <div ref={itineraryContainerRef} className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'} lg:overflow-y-auto lg:h-full lg:pr-2 scrollbar-thin snap-y snap-mandatory`}>
                             <div className="flex items-center justify-between px-1 sm:px-0 gap-2">
                                 <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Itinerary</h2>
 
@@ -1262,7 +1309,7 @@ export default function TripDetailsPage() {
                                 {processedDays && processedDays.length > 0 ? (
                                     processedDays.map((day) => (
                                         <DroppableDay key={day.id} dayId={day.id}>
-                                            <div id={`day-${day.id}`}>
+                                            <div id={`day-${day.id}`} className="snap-start scroll-mt-24">
                                                 <DayCard
                                                     day={day}
                                                     onAddActivity={() => handleAddActivityClick(day.id)}
