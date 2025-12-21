@@ -555,9 +555,16 @@ export default function DayCard({
                                                             </button>
                                                         )}
                                                         {item.notes && (
-                                                            <p className={`text-xs italic p-2 rounded-lg border ${item.isLocked ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300' : (item as Activity).imageUrl ? 'bg-black/20 backdrop-blur-sm border-white/10 text-white/80' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300'}`}>
-                                                                &quot;{item.notes}&quot;
-                                                            </p>
+                                                            <div
+                                                                className={`text-[11px] leading-relaxed p-2.5 rounded-xl border prose prose-sm prose-p:my-0.5 prose-headings:my-1 prose-ul:my-1 prose-li:my-0 dark:prose-invert max-w-none ${item.isLocked
+                                                                    ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-700 dark:text-gray-200'
+                                                                    : (item as Activity).imageUrl
+                                                                        ? 'bg-black/40 backdrop-blur-md border-white/20 text-white/90 shadow-lg'
+                                                                        : 'bg-gray-50 dark:bg-gray-900/50 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-200'
+                                                                    }`}
+                                                                dangerouslySetInnerHTML={{ __html: item.notes }}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
                                                         )}
                                                     </div>
                                                 </div>

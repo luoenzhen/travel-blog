@@ -1,10 +1,11 @@
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useEffect } from 'react';
 import Image from 'next/image';
 import { Activity } from '@/types';
 import { CURRENCIES } from '@/lib/constants';
+import RichTextEditor from '../ui/RichTextEditor';
 
 const activitySchema = z.object({
     type: z.enum(['sightseeing', 'dining', 'shopping', 'transport', 'entertainment', 'other']),
@@ -52,6 +53,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
         reset,
         watch,
         setValue,
+        control,
         formState: { errors, isSubmitting },
     } = useForm<ActivityForm>({
         resolver: zodResolver(activitySchema),
@@ -362,14 +364,19 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Notes
                         </label>
-                        <textarea
-                            {...register('notes')}
-                            rows={3}
-                            className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none resize-none"
-                            placeholder="Booking ref, helpful tips..."
+                        <Controller
+                            name="notes"
+                            control={control}
+                            render={({ field }) => (
+                                <RichTextEditor
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    placeholder="Booking ref, helpful tips..."
+                                />
+                            )}
                         />
                     </div>
                 </form >
