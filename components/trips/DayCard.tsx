@@ -97,6 +97,7 @@ export default function DayCard({
 }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const [hoveredImage, setHoveredImage] = useState<string | null>(null);
+    const [isInsightDismissed, setIsInsightDismissed] = useState(false);
 
     const dateObj = (day.date as Timestamp | { toDate?: () => Date }).toDate
         ? (day.date as Timestamp).toDate()
@@ -294,7 +295,7 @@ export default function DayCard({
     };
 
     const renderWeatherInsight = () => {
-        if (!day.weather || !day.weather.icon.includes('rain')) return null;
+        if (isInsightDismissed || !day.weather || !day.weather.icon.includes('rain')) return null;
 
         const outdoorActivities = day.activities?.filter(a => a.environment === 'outdoor' || (!a.environment && a.type === 'sightseeing')) || [];
         if (outdoorActivities.length === 0) return null;
@@ -315,10 +316,16 @@ export default function DayCard({
                         Rain is expected. Swap <strong>{outdoorActivities[0].name}</strong> with an indoor activity or move it to another day.
                     </p>
                     <div className="mt-3 flex gap-2">
-                        <button className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-colors shadow-sm shadow-amber-500/20">
+                        <button
+                            onClick={() => onAddActivity()}
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-colors shadow-sm shadow-amber-500/20"
+                        >
                             Find Alternative
                         </button>
-                        <button className="px-3 py-1.5 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-lg border border-amber-200 dark:border-amber-800/50 transition-colors">
+                        <button
+                            onClick={() => setIsInsightDismissed(true)}
+                            className="px-3 py-1.5 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-400 text-xs font-bold rounded-lg border border-amber-200 dark:border-amber-800/50 transition-colors hover:bg-amber-50 dark:hover:bg-amber-900/30"
+                        >
                             Dismiss
                         </button>
                     </div>
