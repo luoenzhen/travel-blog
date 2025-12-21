@@ -1110,6 +1110,7 @@ export default function TripDetailsPage() {
                                         <option value="OSM">OSM</option>
                                         <option value="AMAP">Amap</option>
                                         <option value="TENCENT">Tencent</option>
+                                        <option value="BAIDU">Baidu</option>
                                     </select>
                                 </div>
 

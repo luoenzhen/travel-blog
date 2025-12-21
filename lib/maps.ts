@@ -53,6 +53,26 @@ export function wgs84ToGcj02(lat: number, lng: number): [number, number] {
     return [mgLat, mgLng];
 }
 
+/**
+ * GCJ-02 to BD-09 (Baidu)
+ */
+export function gcj02ToBd09(lat: number, lng: number): [number, number] {
+    const x = lng, y = lat;
+    const z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * PI * 3000.0 / 180.0);
+    const theta = Math.atan2(y, x) + 0.000003 * Math.cos(x * PI * 3000.0 / 180.0);
+    const bdLng = z * Math.cos(theta) + 0.0065;
+    const bdLat = z * Math.sin(theta) + 0.006;
+    return [bdLat, bdLng];
+}
+
+/**
+ * WGS-84 to BD-09
+ */
+export function wgs84ToBd09(lat: number, lng: number): [number, number] {
+    const [gcjLat, gcjLng] = wgs84ToGcj02(lat, lng);
+    return gcj02ToBd09(gcjLat, gcjLng);
+}
+
 export interface MapProvider {
     name: string;
     url: string;
@@ -60,6 +80,7 @@ export interface MapProvider {
     isChina: boolean;
     subdomains?: string[];
     tms?: boolean;
+    crs?: string;
 }
 
 export const MAP_PROVIDERS: Record<string, MapProvider> = {
@@ -84,6 +105,14 @@ export const MAP_PROVIDERS: Record<string, MapProvider> = {
         attribution: '&copy; <a href="https://map.qq.com/">Tencent Map</a>',
         isChina: true,
         tms: true
+    },
+    BAIDU: {
+        name: '百度地图 (Baidu)',
+        url: 'https://maponline{s}.bdimg.com/onlinelabel/?qt=tile&x={x}&y={y}&z={z}&styles=pl&scaler=1&p=1',
+        subdomains: ['0', '1', '2', '3'],
+        attribution: '&copy; <a href="https://map.baidu.com/">Baidu Map</a>',
+        isChina: true,
+        crs: 'Baidu'
     }
 };
 

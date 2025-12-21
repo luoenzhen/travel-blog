@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 import { Activity, AccommodationDetails } from '@/types';
-import { MAP_PROVIDERS, MapProviderKey, wgs84ToGcj02 } from '@/lib/maps';
+import { MAP_PROVIDERS, MapProviderKey, wgs84ToGcj02, wgs84ToBd09 } from '@/lib/maps';
 
 // Dynamically import Map components to avoid SSR issues with Leaflet
 const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
@@ -93,7 +93,9 @@ export default function TripMap({
 
     const pins = [
         ...activeActivities.map(a => {
-            const [lat, lng] = mapConfig.isChina ? wgs84ToGcj02(a.location.latitude, a.location.longitude) : [a.location.latitude, a.location.longitude];
+            const [lat, lng] = provider === 'BAIDU'
+                ? wgs84ToBd09(a.location.latitude, a.location.longitude)
+                : (mapConfig.isChina ? wgs84ToGcj02(a.location.latitude, a.location.longitude) : [a.location.latitude, a.location.longitude]);
             return {
                 id: a.id,
                 type: 'activity' as const,
@@ -104,7 +106,9 @@ export default function TripMap({
             };
         }),
         ...activeStays.map(s => {
-            const [lat, lng] = mapConfig.isChina ? wgs84ToGcj02(s.location.latitude, s.location.longitude) : [s.location.latitude, s.location.longitude];
+            const [lat, lng] = provider === 'BAIDU'
+                ? wgs84ToBd09(s.location.latitude, s.location.longitude)
+                : (mapConfig.isChina ? wgs84ToGcj02(s.location.latitude, s.location.longitude) : [s.location.latitude, s.location.longitude]);
             return {
                 id: s.id,
                 type: 'stay' as const,
@@ -174,6 +178,7 @@ export default function TripMap({
     return (
         <div className={`${className} relative overflow-hidden`}>
             <MapContainer
+                key={provider}
                 center={(focusedLocation || (pins.length > 0 ? [pins[0].lat, pins[0].lng] : [0, 0])) as [number, number]}
                 zoom={13}
                 scrollWheelZoom={true}
