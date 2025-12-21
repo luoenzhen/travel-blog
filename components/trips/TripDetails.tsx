@@ -104,11 +104,22 @@ export default function TripDetailsPage() {
     const [editingTransport, setEditingTransport] = useState<TransportationDetails | undefined>(undefined);
     const [editingActivity, setEditingActivity] = useState<Activity | undefined>(undefined);
     const [isMagicGenerating, setIsMagicGenerating] = useState(false);
+    const [showUndoToast, setShowUndoToast] = useState(false);
+    const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null);
+    const [customMapLocation, setCustomMapLocation] = useState<{ lat: number; lng: number; name?: string; } | null>(null);
     const [lastGeneratedIds, setLastGeneratedIds] = useState<Record<string, string[]>>({});
     const [showMap, setShowMap] = useState(false);
     const [activeTab, setActiveTab] = useState<'itinerary' | 'transport' | 'stay' | 'map'>('itinerary');
     const [mapProvider, setMapProvider] = useState<MapProviderKey>('OSM');
-    const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    // Auto-dismiss error toast
+    useEffect(() => {
+        if (errorMessage) {
+            const timer = setTimeout(() => setErrorMessage(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [errorMessage]);
 
     const sensorsMagic = useSensors(
         useSensor(PointerSensor, {
@@ -752,12 +763,60 @@ export default function TripDetailsPage() {
         setFocusedActivityId(id);
         const el = document.getElementById(type === 'stay' ? `stay-${id}` : `activity-${id}`);
         if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Add a brief highlight effect
             el.classList.add('ring-4', 'ring-primary-500/50');
             setTimeout(() => el.classList.remove('ring-4', 'ring-primary-500/50'), 2000);
         }
     };
+
+    const handleLocationClick = async (itemId: string) => {
+        // Find which day this item (activity or stay) belongs to
+        const dayWithItem = activeTrip?.days.find(d =>
+            d.activities?.some(a => a.id === itemId) ||
+            (d.accommodation && d.accommodation.id === itemId)
+        );
+
+        if (dayWithItem) {
+            // It's a known activity or stay
+            setActiveDayId(dayWithItem.id);
+            setFocusedActivityId(itemId);
+            setCustomMapLocation(null);
+
+            // Switch to map tab
+            setShowMap(true);
+            setActiveTab('map');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            // Not a known ID, assume it's a raw location string (e.g. airport name)
+            try {
+                // Show map immediately
+                setShowMap(true);
+                setActiveTab('map');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Geocode it
+                const results = await geocodeLocations([itemId]);
+                if (results && Object.keys(results).length > 0) {
+                    const firstKey = Object.keys(results)[0];
+                    setCustomMapLocation({
+                        lat: results[firstKey].latitude,
+                        lng: results[firstKey].longitude,
+                        name: itemId
+                    });
+                    setFocusedActivityId(null);
+                }
+            } catch (error) {
+                console.error("Failed to map location:", error);
+
+                // Show user-friendly error
+                let msg = "Could not find coordinates for this location.";
+                if (error instanceof Error && error.message.includes("Quota")) {
+                    msg = "Map search limit reached. Please try again in a minute.";
+                }
+                setErrorMessage(msg);
+            }
+        }
+    };
+
 
     if (isInitializing || loading) {
         return (
@@ -1034,6 +1093,7 @@ export default function TripDetailsPage() {
                                                     onUndo={() => handleUndoMagic(day.id)}
                                                     showUndo={!!lastGeneratedIds[day.id]}
                                                     onOptimize={() => handleOptimizeRoute(day.id)}
+                                                    onLocationClick={handleLocationClick}
                                                 />
                                             </div>
                                         </DroppableDay>
@@ -1051,15 +1111,10 @@ export default function TripDetailsPage() {
                             {showMap ? (
                                 <TripMap
                                     activities={activeTrip.days.flatMap(d => (d.activities || []).map(a => ({ ...a, dayId: d.id })))}
-                                    accommodations={Array.from(
-                                        new Map(
-                                            activeTrip.days
-                                                .flatMap(d => d.accommodation ? [{ ...d.accommodation, dayId: d.id }] : [])
-                                                .map(acc => [acc.id, acc])
-                                        ).values()
-                                    )}
+                                    accommodations={activeTrip.days.flatMap(d => d.accommodation ? [{ ...d.accommodation, dayId: d.id }] : [])}
                                     activeDayId={activeDayId}
                                     focusedId={focusedActivityId}
+                                    customLocation={customMapLocation}
                                     onMarkerClick={handleMarkerClick}
                                     provider={mapProvider}
                                     className="h-[100vh] lg:h-full w-full lg:rounded-xl overflow-hidden border-0 lg:border lg:border-gray-100 lg:dark:border-gray-700 lg:shadow-inner"
@@ -1190,6 +1245,23 @@ export default function TripDetailsPage() {
                 {activeTrip && <CreateTripModal isOpen={isEditTripModalOpen} onClose={() => setIsEditTripModalOpen(false)} tripToEdit={activeTrip} />}
                 {activeTrip && <BudgetModal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} trip={activeTrip} onSave={handleSaveBudget} />}
                 <AddPhotoModal isOpen={isPhotoModalOpen} onClose={() => setIsPhotoModalOpen(false)} onSave={handleSavePhoto} dayDate={activeDayId ? getDayDateString(activeDayId) : ''} dayId={activeDayId || ''} />
+
+                {/* Error Toast */}
+                {errorMessage && (
+                    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up px-4 w-full max-w-sm">
+                        <div className="bg-red-50 dark:bg-red-900/90 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-200 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 backdrop-blur-sm">
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-sm font-medium">{errorMessage}</span>
+                            <button onClick={() => setErrorMessage(null)} className="ml-auto p-1 hover:bg-red-100 dark:hover:bg-red-800/50 rounded-full transition-colors">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </DndContext >
     );

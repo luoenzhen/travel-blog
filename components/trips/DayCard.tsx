@@ -37,6 +37,7 @@ interface DayCardProps {
     onUndo?: () => void;
     showUndo?: boolean;
     onOptimize?: () => void;
+    onLocationClick?: (activityId: string) => void;
 }
 
 function SortableItem({ id, children, disabled }: { id: string; children: React.ReactNode; disabled?: boolean }) {
@@ -89,7 +90,8 @@ export default function DayCard({
     onRemovePhoto,
     onUndo,
     showUndo,
-    onOptimize
+    onOptimize,
+    onLocationClick
 }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const [hoveredImage, setHoveredImage] = useState<string | null>(null);
@@ -438,12 +440,14 @@ export default function DayCard({
                                         {item._type === 'transportation' ? (
                                             <TransportCard
                                                 transport={item}
+                                                onLocationClick={onLocationClick}
                                             />
                                         ) : item._type === 'stay' || item._type === 'stay-checkout' ? (
                                             <AccommodationCard
                                                 accommodation={item}
                                                 isCheckIn={item._type === 'stay' && isCheckInDay}
                                                 isCheckOut={item._type === 'stay-checkout'}
+                                                onLocationClick={onLocationClick}
                                             />
                                         ) : item._type === 'activity' ? (
                                             <div id={`activity-${item.id}`} className="w-full pb-2 sm:pb-4 group/activity">
@@ -514,11 +518,11 @@ export default function DayCard({
                                                         </div>
 
                                                         {item.location && (
-                                                            <a
-                                                                href={`https://www.bing.com/maps?q=${encodeURIComponent(item.location.name)}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                onClick={(e) => e.stopPropagation()}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onLocationClick?.(item.id);
+                                                                }}
                                                                 className={`flex items-center text-xs transition-colors mb-1 sm:mb-2 w-fit group/map ${(item as Activity).imageUrl ? 'text-white/70 hover:text-white' : 'text-gray-400 hover:text-primary-500'}`}
                                                             >
                                                                 <svg className="w-3 h-3 mr-1 group-hover/map:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -527,9 +531,9 @@ export default function DayCard({
                                                                 </svg>
                                                                 <span>{item.location.name}</span>
                                                                 <svg className="w-2.5 h-2.5 ml-1 opacity-0 group-hover/map:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                                                 </svg>
-                                                            </a>
+                                                            </button>
                                                         )}
                                                         {item.notes && (
                                                             <p className={`text-xs italic p-2 rounded-lg border ${item.isLocked ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300' : (item as Activity).imageUrl ? 'bg-black/20 backdrop-blur-sm border-white/10 text-white/80' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30 text-gray-600 dark:text-gray-300'}`}>

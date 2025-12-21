@@ -6,9 +6,10 @@ interface AccommodationCardProps {
     accommodation: AccommodationDetails;
     isCheckIn?: boolean;
     isCheckOut?: boolean;
+    onLocationClick?: (id: string) => void;
 }
 
-export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut }: AccommodationCardProps) {
+export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut, onLocationClick }: AccommodationCardProps) {
     // If explicit flags are not provided (default behavior), assume generic info (maybe show both or minimal)
     // Actually, logic from parent decides. If both false, it's a middle day.
     const isMiddleDay = !isCheckIn && !isCheckOut;
@@ -42,18 +43,18 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
                             </div>
                             <div>
                                 <h4 className={`font-bold text-sm sm:text-base leading-tight ${accommodation.imageUrl ? 'text-white drop-shadow-md' : 'text-gray-900 dark:text-gray-100'}`}>{accommodation.name}</h4>
-                                <a
-                                    href={`https://www.bing.com/maps?q=${encodeURIComponent(accommodation.address + ' ' + accommodation.name)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onLocationClick?.(accommodation.id);
+                                    }}
                                     className={`text-[10px] sm:text-sm transition-colors flex items-center gap-1 group/addr ${accommodation.imageUrl ? 'text-white/80 hover:text-white' : 'text-gray-400 hover:text-purple-500'}`}
                                 >
                                     <span className="truncate max-w-[150px] sm:max-w-[250px]">{accommodation.address}</span>
                                     <svg className="w-2.5 h-2.5 opacity-0 group-hover/addr:opacity-100 transition-opacity flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
-                                </a>
+                                </button>
                             </div>
                         </div>
                         <span className={`text-[10px] sm:text-xs font-medium uppercase tracking-wide px-1.5 py-0.5 sm:px-2 sm:py-1 rounded flex-shrink-0 ${accommodation.imageUrl ? 'bg-white/20 backdrop-blur-md text-white' : 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300'}`}>

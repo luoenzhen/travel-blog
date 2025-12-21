@@ -23,18 +23,24 @@ interface TripMapProps {
     focusedId?: string | null;
     onMarkerClick?: (id: string, type: 'activity' | 'stay') => void;
     className?: string;
+    customLocation?: { lat: number; lng: number; name?: string; } | null;
     provider?: MapProviderKey;
 }
 
 // Internal component to handle view changes
-function MapController({ bounds }: { bounds: number[][] }) {
+function MapController({ bounds, focusedLocation }: { bounds: number[][], focusedLocation?: [number, number] | null }) {
     const map = useMap();
 
     useEffect(() => {
-        if (map && bounds && bounds.length > 0 && bounds[0][0] !== 0) {
+        // Fix for map size when showing from hidden state
+        map.invalidateSize();
+
+        if (focusedLocation) {
+            map.flyTo(focusedLocation as L.LatLngExpression, 16, { animate: true, duration: 1.5 });
+        } else if (map && bounds && bounds.length > 0 && bounds[0][0] !== 0) {
             map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [50, 50], maxZoom: 15 });
         }
-    }, [bounds, map]);
+    }, [bounds, map, focusedLocation]);
     return null;
 }
 
@@ -44,6 +50,7 @@ export default function TripMap({
     activeDayId,
     focusedId,
     onMarkerClick,
+    customLocation,
     className = "h-full w-full",
     provider = 'OSM'
 }: TripMapProps) {
@@ -78,9 +85,11 @@ export default function TripMap({
         ? activities.filter(a => (a as Activity & { dayId: string }).dayId === activeDayId)
         : activities;
 
-    const activeStays = activeDayId
+    const rawStays = activeDayId
         ? accommodations.filter(s => (s as AccommodationDetails & { dayId: string }).dayId === activeDayId)
         : accommodations;
+
+    const activeStays = Array.from(new Map(rawStays.map(s => [s.id, s])).values());
 
     const pins = [
         ...activeActivities.map(a => {
@@ -108,7 +117,19 @@ export default function TripMap({
     ].filter(p => typeof p.lat === 'number' && typeof p.lng === 'number' && (Math.abs(p.lat) > 0.0001 || Math.abs(p.lng) > 0.0001));
 
     const bounds = pins.length > 0 ? pins.map(p => [p.lat, p.lng]) : [[0, 0]];
-    const center = pins.length > 0 ? [pins[0].lat, pins[0].lng] : [0, 0];
+
+    // Determine focused location
+    let focusedLocation: [number, number] | null = null;
+
+    if (customLocation) {
+        // Priority to custom location (search result)
+        focusedLocation = [customLocation.lat, customLocation.lng];
+    } else if (focusedId) {
+        const focusedPin = pins.find(p => p.id === focusedId);
+        if (focusedPin) {
+            focusedLocation = [focusedPin.lat, focusedPin.lng];
+        }
+    }
 
     // Create polyline logic for routes
     const routeCoordinates = pins
@@ -120,7 +141,7 @@ export default function TripMap({
         .map(p => [p.lat, p.lng]);
 
     const getIcon = (type: string, category: string, isFocused: boolean) => {
-        const color = type === 'stay' ? '#8b5cf6' : '#0ea5e9'; // Purple for stay, Blue for activity
+        const color = type === 'stay' ? '#8b5cf6' : type === 'custom' ? '#f59e0b' : '#0ea5e9'; // Purple for stay, Orange for custom, Blue for activity
         const size = isFocused ? 40 : 30;
 
         return L.divIcon({
@@ -140,7 +161,7 @@ export default function TripMap({
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 ">
                     <div style="transform: rotate(45deg); color: white; font-size: 14px;">
-                        ${type === 'stay' ? '🏠' : '📍'}
+                        ${type === 'stay' ? '🏠' : type === 'custom' ? '📍' : '📍'}
                     </div>
                 </div>
             `,
@@ -153,7 +174,7 @@ export default function TripMap({
     return (
         <div className={`${className} relative overflow-hidden`}>
             <MapContainer
-                center={center as [number, number]}
+                center={(focusedLocation || (pins.length > 0 ? [pins[0].lat, pins[0].lng] : [0, 0])) as [number, number]}
                 zoom={13}
                 scrollWheelZoom={true}
                 attributionControl={false}
@@ -180,6 +201,17 @@ export default function TripMap({
                     </Marker>
                 ))}
 
+                {customLocation && (
+                    <Marker
+                        position={[customLocation.lat, customLocation.lng]}
+                        icon={getIcon('custom', 'search', true)}
+                    >
+                        <Popup>
+                            <div className="font-bold text-gray-900">{customLocation.name || 'Location'}</div>
+                        </Popup>
+                    </Marker>
+                )}
+
                 {routeCoordinates.length > 1 && (
                     <Polyline
                         positions={routeCoordinates as [number, number][]}
@@ -190,7 +222,7 @@ export default function TripMap({
                     />
                 )}
 
-                <MapController bounds={bounds} />
+                <MapController bounds={bounds} focusedLocation={focusedLocation} />
             </MapContainer>
         </div>
     );

@@ -7,9 +7,10 @@ import { Timestamp } from 'firebase/firestore';
 interface TransportCardProps {
     transport: TransportationDetails;
     onClick?: () => void;
+    onLocationClick?: (location: string) => void;
 }
 
-export default function TransportCard({ transport, onClick }: TransportCardProps) {
+export default function TransportCard({ transport, onClick, onLocationClick }: TransportCardProps) {
     // Format helpers
     const formatTime = (ts: string | { seconds: number } | { toDate: () => Date } | Date | null | undefined) => {
         if (!ts) return '';
@@ -95,20 +96,22 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
                 <div className="flex flex-row items-center gap-2 sm:gap-4 md:gap-6">
                     {/* Departure */}
                     <div className="flex-1 min-w-0 text-left">
-                        <a
-                            href={`https://www.bing.com/maps?q=${encodeURIComponent(transport.departureAirportCode || transport.departureAirport)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const loc = transport.departureAirport || transport.departureAirportCode;
+                                if (loc) onLocationClick?.(loc);
+                            }}
                             className="inline-block hover:text-primary-500 transition-colors group/dep"
                         >
                             <div className="text-base sm:text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center justify-start gap-1">
                                 {transport.departureAirportCode}
                                 <svg className="w-3 h-3 opacity-0 group-hover/dep:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             </div>
-                        </a>
+                        </button>
                         <div className="text-[9px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.departureAirport}>
                             {formatTime(transport.departureTime)}
                         </div>
@@ -201,20 +204,22 @@ export default function TransportCard({ transport, onClick }: TransportCardProps
 
                     {/* Arrival */}
                     <div className="flex-1 min-w-0 text-right">
-                        <a
-                            href={`https://www.bing.com/maps?q=${encodeURIComponent(transport.arrivalAirportCode || transport.arrivalAirport)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const loc = transport.arrivalAirport || transport.arrivalAirportCode;
+                                if (loc) onLocationClick?.(loc);
+                            }}
                             className="inline-block hover:text-primary-500 transition-colors group/arr"
                         >
                             <div className="text-base sm:text-xl font-black text-gray-900 dark:text-white leading-tight flex items-center justify-end gap-1">
                                 <svg className="w-3 h-3 opacity-0 group-hover/arr:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                                 {transport.arrivalAirportCode}
                             </div>
-                        </a>
+                        </button>
                         <div className="text-[9px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 truncate" title={transport.arrivalAirport}>
                             {formatTime(transport.arrivalTime)}
                         </div>
