@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isWithinInterval, isToday } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, addMonths, subMonths, isToday } from 'date-fns';
 import { Trip, DayPlan } from '@/types';
-import { Timestamp } from 'firebase/firestore';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TripCalendarProps {
     trip: Trip;
@@ -14,23 +13,35 @@ interface TripCalendarProps {
 }
 
 export default function TripCalendar({ trip, onDayClick, selectedDayId, children }: TripCalendarProps) {
+    const getDate = (date: unknown): Date => {
+        if (!date) return new Date();
+        if (date instanceof Date) return date;
+        if (typeof date === 'object' && date !== null) {
+            const d = date as Record<string, unknown>;
+            if (typeof d.toDate === 'function') {
+                return (d.toDate as () => Date)();
+            }
+            if (typeof d.seconds === 'number') {
+                return new Date(d.seconds * 1000);
+            }
+        }
+        if (typeof date === 'string') return new Date(date);
+        return new Date();
+    };
+
     const [currentMonth, setCurrentMonth] = useState(() => {
-        // Default to trip start date or today
         if (trip.startDate) {
-            const start = (trip.startDate as any).toDate ? (trip.startDate as any).toDate() : new Date((trip.startDate as any).seconds * 1000);
-            return startOfMonth(start);
+            return startOfMonth(getDate(trip.startDate));
         }
         return startOfMonth(new Date());
     });
-
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     // Normalize trip days for easy lookup
     const processedDays = useMemo(() => {
         if (!trip.days) return {};
         const map: Record<string, DayPlan> = {};
         trip.days.forEach(day => {
-            const date = (day.date as any).toDate ? (day.date as any).toDate() : new Date((day.date as any).seconds * 1000);
+            const date = getDate(day.date);
             const key = format(date, 'yyyy-MM-dd');
             map[key] = day;
         });
@@ -83,7 +94,7 @@ export default function TripCalendar({ trip, onDayClick, selectedDayId, children
 
                     {/* Days */}
                     <div className="grid grid-cols-7 gap-y-4 gap-x-2">
-                        {daysInMonth.map((date, idx) => {
+                        {daysInMonth.map((date) => {
                             const dateKey = format(date, 'yyyy-MM-dd');
                             const dayPlan = processedDays[dateKey];
                             const isCurrentMonth = isSameMonth(date, currentMonth);
