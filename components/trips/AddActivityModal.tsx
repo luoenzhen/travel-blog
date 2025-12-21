@@ -82,6 +82,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
     const activityLocation = watch('location');
     const selectedimageUrl = watch('imageUrl');
     const activityType = watch('type');
+    const startTime = watch('startTime');
 
     // Auto-detect environment based on name
     useEffect(() => {
@@ -97,6 +98,18 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
             setValue('environment', 'outdoor');
         }
     }, [activityName, setValue, editingActivity]);
+
+    // Smart time logic: Auto-set end time to start + 1 hour
+    useEffect(() => {
+        if (!startTime || editingActivity) return;
+
+        const [hours, minutes] = startTime.split(':').map(Number);
+        // Add 1 hour, handle 24h wrap
+        const endHours = (hours + 1) % 24;
+        const formattedEnd = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+        setValue('endTime', formattedEnd);
+    }, [startTime, setValue, editingActivity]);
 
     const handleAutoFindImage = () => {
         if (!activityName) return;
@@ -269,30 +282,47 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                         {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location.message}</p>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Start Time
-                            </label>
-                            <input
-                                {...register('startTime')}
-                                type="time"
-                                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none"
-                            />
-                            {errors.startTime && <p className="text-red-500 text-sm mt-1">{errors.startTime.message}</p>}
-                        </div>
+                    <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Time Window
+                        </label>
+                        <div className="flex items-center justify-around p-3 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">
+                            <div className="flex-1 flex flex-col items-center gap-1">
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Start</span>
+                                <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <input
+                                        {...register('startTime')}
+                                        type="time"
+                                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-gray-900 dark:text-white"
+                                    />
+                                </div>
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                End Time
-                            </label>
-                            <input
-                                {...register('endTime')}
-                                type="time"
-                                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none"
-                            />
-                            {errors.endTime && <p className="text-red-500 text-sm mt-1">{errors.endTime.message}</p>}
+                            <div className="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-2" />
+
+                            <div className="flex-1 flex flex-col items-center gap-1">
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">End</span>
+                                <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <input
+                                        {...register('endTime')}
+                                        type="time"
+                                        min={startTime}
+                                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-gray-900 dark:text-white"
+                                    />
+                                </div>
+                            </div>
                         </div>
+                        {(errors.startTime || errors.endTime) && (
+                            <p className="text-red-500 text-xs mt-1">
+                                {errors.startTime?.message || errors.endTime?.message}
+                            </p>
+                        )}
                     </div>
 
                     <div>
