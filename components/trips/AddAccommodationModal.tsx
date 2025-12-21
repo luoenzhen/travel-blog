@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 import { AccommodationDetails } from '@/types';
 import { CURRENCIES } from '@/lib/constants';
 
@@ -234,7 +235,7 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
 
                     {selectedImageUrl && (
                         <div className="relative group rounded-xl overflow-hidden aspect-[21/9] border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
-                            <img src={selectedImageUrl} alt="Preview" className="w-full h-full object-cover object-center" />
+                            <Image src={selectedImageUrl} alt="Preview" fill className="object-cover object-center" unoptimized />
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                     type="button"

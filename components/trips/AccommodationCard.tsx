@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { AccommodationDetails } from '@/types';
 
 interface AccommodationCardProps {
@@ -22,10 +23,12 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
                 {/* Background Image with Overlay */}
                 {accommodation.imageUrl && (
                     <div className="absolute inset-0 z-0">
-                        <img
+                        <Image
                             src={accommodation.imageUrl}
                             alt={accommodation.name}
-                            className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                            fill
+                            className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                            unoptimized
                         />
                         {/* Multi-layered overlay for maximum contrast - Lightened */}
                         <div className="absolute inset-0 bg-black/20" />

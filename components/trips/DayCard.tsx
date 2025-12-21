@@ -340,10 +340,12 @@ export default function DayCard({
             <div className={`absolute inset-0 z-0 transition-opacity duration-700 pointer-events-none ${hoveredImage ? 'opacity-100' : 'opacity-0'}`}>
                 {hoveredImage && (
                     <>
-                        <img
+                        <Image
                             src={hoveredImage}
                             alt="Background"
-                            className="w-full h-full object-cover object-center scale-110 blur-sm brightness-50"
+                            fill
+                            className="object-cover object-center scale-110 blur-sm brightness-50"
+                            unoptimized
                         />
                         <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/20 to-black/80" />
                     </>
@@ -462,10 +464,12 @@ export default function DayCard({
                                                     {/* Smart Image Background */}
                                                     {(item as Activity).imageUrl && (
                                                         <div className="absolute inset-0 z-0">
-                                                            <img
-                                                                src={(item as Activity).imageUrl}
+                                                            <Image
+                                                                src={(item as Activity).imageUrl!}
                                                                 alt={item.name}
-                                                                className="w-full h-full object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
+                                                                fill
+                                                                className="object-cover object-center transition-transform duration-700 group-hover/activity:scale-110"
+                                                                unoptimized
                                                             />
                                                             {/* Multi-layered overlay for maximum contrast - Lightened */}
                                                             <div className="absolute inset-0 bg-black/20 group-hover/activity:bg-black/10 transition-colors duration-300" />

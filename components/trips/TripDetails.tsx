@@ -104,7 +104,7 @@ export default function TripDetailsPage() {
     const [editingTransport, setEditingTransport] = useState<TransportationDetails | undefined>(undefined);
     const [editingActivity, setEditingActivity] = useState<Activity | undefined>(undefined);
     const [isMagicGenerating, setIsMagicGenerating] = useState(false);
-    const [showUndoToast, setShowUndoToast] = useState(false);
+
     const [focusedActivityId, setFocusedActivityId] = useState<string | null>(null);
     const [customMapLocation, setCustomMapLocation] = useState<{ lat: number; lng: number; name?: string; } | null>(null);
     const [lastGeneratedIds, setLastGeneratedIds] = useState<Record<string, string[]>>({});

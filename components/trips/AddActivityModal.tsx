@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useEffect } from 'react';
+import Image from 'next/image';
 import { Activity } from '@/types';
 import { CURRENCIES } from '@/lib/constants';
 import { TravelBlogLogo } from '@/components/ui/TravelBlogLogo';
@@ -263,7 +264,7 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                     {
                         selectedimageUrl && (
                             <div className="relative group rounded-xl overflow-hidden aspect-[21/9] border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
-                                <img src={selectedimageUrl} alt="Preview" className="w-full h-full object-cover object-center" />
+                                <Image src={selectedimageUrl} alt="Preview" fill className="object-cover object-center" unoptimized />
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         type="button"
