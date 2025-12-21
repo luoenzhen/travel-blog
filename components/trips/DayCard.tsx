@@ -409,7 +409,8 @@ export default function DayCard({
                                 </button>
                             )}
 
-                            {(day.activities?.length || 0) > 1 && (
+                            {/* Hidden for now: Optimize Route button */}
+                            {false && (day.activities?.length || 0) > 1 && (
                                 <button
                                     onClick={onOptimize}
                                     className="px-3 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-xs font-bold rounded-lg border border-primary-100 dark:border-primary-800/50 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-all flex items-center gap-1.5"
