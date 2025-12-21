@@ -16,6 +16,9 @@ import { Activity, TransportationDetails, AccommodationDetails, DayPlan, TripBud
 import { MapProviderKey } from '@/lib/maps';
 import { generateMagicDayActivities, geocodeLocations } from '@/lib/ai';
 import dynamic from 'next/dynamic';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 const TripMap = dynamic(() => import('./TripMap'), { ssr: false });
 import {
@@ -1113,19 +1116,46 @@ export default function TripDetailsPage() {
                                             const jsonString = JSON.stringify(tripToExport, null, 2);
                                             const filename = `${(activeTrip.title || "trip").replace(/[^a-z0-9]/gi, "_").toLowerCase()}.json`;
 
-                                            const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
-                                            const url = window.URL.createObjectURL(blob);
-                                            const a = document.createElement("a");
-                                            a.style.display = "none";
-                                            a.href = url;
-                                            a.download = filename;
-                                            document.body.appendChild(a);
-                                            a.click();
+                                            if (Capacitor.isNativePlatform()) {
+                                                try {
+                                                    const result = await Filesystem.writeFile({
+                                                        path: filename,
+                                                        data: jsonString,
+                                                        directory: Directory.Cache,
+                                                        encoding: Encoding.UTF8,
+                                                    });
+                                                    await Share.share({
+                                                        title: filename,
+                                                        text: 'My Trip Plan',
+                                                        url: result.uri,
+                                                        dialogTitle: 'Export Trip Plan',
+                                                    });
+                                                } catch (nativeErr) {
+                                                    console.error('Capacitor export error:', nativeErr);
+                                                    // Fallback to basic text share if file sharing fails
+                                                    const isError = nativeErr instanceof Error && !nativeErr.message.includes('canceled');
+                                                    if (isError) {
+                                                        await Share.share({
+                                                            title: filename,
+                                                            text: jsonString,
+                                                        });
+                                                    }
+                                                }
+                                            } else {
+                                                const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
+                                                const url = window.URL.createObjectURL(blob);
+                                                const a = document.createElement("a");
+                                                a.style.display = "none";
+                                                a.href = url;
+                                                a.download = filename;
+                                                document.body.appendChild(a);
+                                                a.click();
 
-                                            setTimeout(() => {
-                                                document.body.removeChild(a);
-                                                window.URL.revokeObjectURL(url);
-                                            }, 100);
+                                                setTimeout(() => {
+                                                    document.body.removeChild(a);
+                                                    window.URL.revokeObjectURL(url);
+                                                }, 100);
+                                            }
                                         } catch (err: unknown) {
                                             console.error('Export error:', err);
                                             const errorMessage = err instanceof Error ? err.message : 'Unknown error during export';
