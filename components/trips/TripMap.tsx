@@ -151,13 +151,13 @@ export default function TripMap({
     };
 
     return (
-        <div className={className}>
+        <div className={`${className} relative overflow-hidden`}>
             <MapContainer
                 center={center as [number, number]}
                 zoom={13}
                 scrollWheelZoom={true}
                 attributionControl={false}
-                className="h-full w-full rounded-2xl overflow-hidden shadow-inner border border-gray-200 dark:border-gray-700"
+                className="h-full w-full"
             >
                 <TileLayer
                     url={mapConfig.url}
@@ -166,7 +166,7 @@ export default function TripMap({
 
                 {pins.map(pin => (
                     <Marker
-                        key={pin.id}
+                        key={`${pin.type}-${pin.id}`}
                         position={[pin.lat, pin.lng]}
                         icon={getIcon(pin.type, pin.category, focusedId === pin.id)}
                         eventHandlers={{

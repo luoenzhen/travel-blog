@@ -64,9 +64,11 @@
   .text-balance {
     text-wrap: balance;
   }
+
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
+
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -99,6 +101,16 @@
 .leaflet-control-attribution,
 .leaflet-bottom.leaflet-right {
   display: none !important;
+}
+
+/* Prevent Leaflet map overflow */
+.leaflet-container {
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
 }
 
 /* Mobile-first responsive utilities */
@@ -162,17 +174,21 @@
     transform: translateY(-50%) rotate(0deg);
     opacity: 0;
   }
+
   15% {
     opacity: 1;
     transform: translateY(-50%) rotate(-5deg);
   }
+
   50% {
     transform: translateY(-60%) rotate(0deg);
   }
+
   85% {
     opacity: 1;
     transform: translateY(-50%) rotate(5deg);
   }
+
   100% {
     left: 105%;
     transform: translateY(-50%) rotate(0deg);
@@ -185,12 +201,15 @@
     left: -20%;
     opacity: 0;
   }
+
   15% {
     opacity: 1;
   }
+
   85% {
     opacity: 1;
   }
+
   100% {
     left: 105%;
     opacity: 0;

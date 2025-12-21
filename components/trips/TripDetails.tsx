@@ -118,6 +118,34 @@ export default function TripDetailsPage() {
         })
     );
 
+    // Disable body scroll on mobile when map is active
+    useEffect(() => {
+        // Only apply on mobile (screens smaller than lg breakpoint)
+        const isMobile = window.innerWidth < 1024;
+
+        if (isMobile && activeTab === 'map') {
+            // Save current scroll position
+            const scrollY = window.scrollY;
+
+            // Disable scroll
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
+
+            return () => {
+                // Re-enable scroll
+                document.body.style.overflow = '';
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.width = '';
+
+                // Restore scroll position
+                window.scrollTo(0, scrollY);
+            };
+        }
+    }, [activeTab]);
+
 
     const tripId = (params.id as string) || searchParams.get('id') || '';
 
@@ -982,8 +1010,8 @@ export default function TripDetailsPage() {
                 </div>
 
                 {/* Main Content - Itinerary & Map Split View */}
-                <div id="itinerary-content" className={`container mx-auto px-2 sm:px-4 py-4 sm:py-8 transition-all duration-500 overflow-x-hidden ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
-                    <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 min-h-[calc(100vh-200px)]">
+                <div id="itinerary-content" className={`container mx-auto transition-all duration-500 overflow-x-hidden ${activeTab === 'map' ? 'p-0 max-w-none' : 'px-2 sm:px-4 py-4 sm:py-8'} ${(showMap || activeTab === 'map') ? 'max-w-none lg:px-8' : ''}`}>
+                    <div className={`flex flex-col lg:flex-row min-h-[calc(100vh-200px)] ${activeTab === 'map' ? 'gap-0' : 'gap-6 sm:gap-8'}`}>
                         {/* Left: Day List */}
                         <div className={`flex-1 space-y-4 sm:space-y-6 transition-all duration-500 ${activeTab !== 'itinerary' ? 'hidden lg:block' : 'block'} ${showMap ? 'lg:w-[55%] xl:w-[60%]' : 'w-full'}`}>
                             <div className="flex items-center justify-between px-1 sm:px-0 gap-2">
@@ -1019,16 +1047,22 @@ export default function TripDetailsPage() {
                         </div>
 
                         {/* Right: Sticky Content Pane (Map or Sidebar) */}
-                        <div className={`lg:sticky lg:top-24 lg:h-[calc(100vh-120px)] w-full lg:w-[45%] xl:w-[40%] transition-all duration-500 ${activeTab !== 'itinerary' ? 'block pb-24 lg:pb-0' : 'hidden lg:block'}`}>
+                        <div className={`lg:sticky lg:top-24 lg:h-[calc(100vh-120px)] w-full lg:w-[45%] xl:w-[40%] transition-all duration-500 ${activeTab !== 'itinerary' ? 'block' : 'hidden lg:block'} ${activeTab === 'map' ? 'p-0' : 'pb-24 lg:pb-0'}`}>
                             {showMap ? (
                                 <TripMap
                                     activities={activeTrip.days.flatMap(d => (d.activities || []).map(a => ({ ...a, dayId: d.id })))}
-                                    accommodations={activeTrip.days.flatMap(d => d.accommodation ? [{ ...d.accommodation, dayId: d.id }] : [])}
+                                    accommodations={Array.from(
+                                        new Map(
+                                            activeTrip.days
+                                                .flatMap(d => d.accommodation ? [{ ...d.accommodation, dayId: d.id }] : [])
+                                                .map(acc => [acc.id, acc])
+                                        ).values()
+                                    )}
                                     activeDayId={activeDayId}
                                     focusedId={focusedActivityId}
                                     onMarkerClick={handleMarkerClick}
                                     provider={mapProvider}
-                                    className="h-[calc(100vh-280px)] lg:h-full min-h-[350px] rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-inner"
+                                    className="h-[100vh] lg:h-full w-full lg:rounded-xl overflow-hidden border-0 lg:border lg:border-gray-100 lg:dark:border-gray-700 lg:shadow-inner"
                                 />
                             ) : (
                                 <div className="space-y-6 overflow-y-auto h-full pr-2">
