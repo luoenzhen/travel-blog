@@ -38,6 +38,7 @@ interface DayCardProps {
     showUndo?: boolean;
     onOptimize?: () => void;
     onLocationClick?: (activityId: string) => void;
+    onDayClick?: () => void;
 }
 
 function SortableItem({ id, children, disabled }: { id: string; children: React.ReactNode; disabled?: boolean }) {
@@ -91,7 +92,8 @@ export default function DayCard({
     onUndo,
     showUndo,
     onOptimize,
-    onLocationClick
+    onLocationClick,
+    onDayClick
 }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
     const [hoveredImage, setHoveredImage] = useState<string | null>(null);
@@ -353,8 +355,11 @@ export default function DayCard({
             </div>
 
             <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4 sm:mb-6">
-                    <div className="relative text-left">
+                <div
+                    className="flex justify-between items-start mb-4 sm:mb-6 cursor-pointer group"
+                    onClick={() => onDayClick?.()}
+                >
+                    <div className="relative text-left group-hover:opacity-80 transition-opacity">
                         {isToday && (
                             <div className="absolute -top-6 left-0 bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg shadow-amber-500/30 animate-pulse tracking-wider">
                                 TODAY

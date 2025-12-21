@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTripStore } from '@/store/tripStore';
 import { format, differenceInDays, addDays } from 'date-fns';
@@ -112,6 +112,7 @@ export default function TripDetailsPage() {
     const [activeTab, setActiveTab] = useState<'itinerary' | 'transport' | 'stay' | 'map'>('itinerary');
     const [mapProvider, setMapProvider] = useState<MapProviderKey>('OSM');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const isProgrammaticScroll = useRef(false);
 
     // Auto-dismiss error toast
     useEffect(() => {
@@ -128,6 +129,75 @@ export default function TripDetailsPage() {
             },
         })
     );
+
+    const mapOverlayInfo = useMemo(() => {
+        if (customMapLocation) {
+            return {
+                title: 'Search Result',
+                subtitle: customMapLocation.name || 'Custom Location',
+                type: 'custom',
+                fullDate: 'Location Result'
+            };
+        }
+
+        if (activeTrip) {
+            // 1. Try to find by focusedActivityId
+            if (focusedActivityId) {
+                let foundDayIndex = -1;
+                let foundItem: Activity | AccommodationDetails | undefined;
+                let itemType = 'activity';
+
+                activeTrip.days.some((day, index) => {
+                    const act = day.activities?.find(a => a.id === focusedActivityId);
+                    if (act) {
+                        foundDayIndex = index;
+                        foundItem = act;
+                        itemType = 'activity';
+                        return true;
+                    }
+                    const stay = day.accommodation?.id === focusedActivityId ? day.accommodation : undefined;
+                    if (stay) {
+                        foundDayIndex = index;
+                        foundItem = stay;
+                        itemType = 'stay';
+                        return true;
+                    }
+                    return false;
+                });
+
+                if (foundItem) {
+                    const dateObj = activeTrip.days[foundDayIndex].date?.toDate();
+                    const dateStr = dateObj ? format(dateObj, 'EEE, MMM d') : `Day ${foundDayIndex + 1}`;
+                    const fullDateStr = dateObj ? format(dateObj, 'EEEE, MMMM d') : `Day ${foundDayIndex + 1}`;
+
+                    return {
+                        title: dateStr,
+                        subtitle: foundItem.name,
+                        type: itemType,
+                        fullDate: fullDateStr
+                    };
+                }
+            }
+
+            // 2. Fallback: If only Day is active (e.g. accordion open)
+            if (activeDayId && !focusedActivityId) {
+                const dayIndex = activeTrip.days.findIndex(d => d.id === activeDayId);
+                if (dayIndex !== -1) {
+                    const day = activeTrip.days[dayIndex];
+                    const dateObj = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date as any);
+                    const fullDateStr = isNaN(dateObj.getTime()) ? `Day ${day.dayNumber}` : format(dateObj, 'EEEE, MMMM d');
+
+                    return {
+                        title: `Day ${day.dayNumber}`,
+                        subtitle: `Day ${day.dayNumber}`,
+                        type: 'day',
+                        fullDate: fullDateStr
+                    };
+                }
+            }
+        }
+        return null;
+    }, [focusedActivityId, activeDayId, customMapLocation, activeTrip]);
 
     // Disable body scroll on mobile when map is active
     useEffect(() => {
@@ -746,7 +816,16 @@ export default function TripDetailsPage() {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
                         const dayId = entry.target.id.replace('day-', '');
-                        setActiveDayId(dayId);
+
+                        if (!isProgrammaticScroll.current) {
+                            setActiveDayId(dayId);
+                            // Clear specific activity focus on manual scroll to update header
+                            setFocusedActivityId(null);
+                            setCustomMapLocation(null);
+                        } else {
+                            // Just update the active day tracking without clearing focus
+                            setActiveDayId(dayId);
+                        }
                     }
                 });
             },
@@ -760,13 +839,46 @@ export default function TripDetailsPage() {
     }, [processedDays, isInitializing]);
 
     const handleMarkerClick = (id: string, type: 'activity' | 'stay') => {
+        isProgrammaticScroll.current = true;
         setFocusedActivityId(id);
+
+        // Reset flag after scroll/animation
+        setTimeout(() => { isProgrammaticScroll.current = false; }, 1000);
+
+        // Find which day this item belongs to and update activeDayId
+        const dayWithItem = activeTrip?.days.find(d =>
+            (type === 'activity' && d.activities?.some(a => a.id === id)) ||
+            (type === 'stay' && d.accommodation?.id === id)
+        );
+
+        if (dayWithItem) {
+            setActiveDayId(dayWithItem.id);
+        }
+
+        // Highlight the card if visible
         const el = document.getElementById(type === 'stay' ? `stay-${id}` : `activity-${id}`);
         if (el) {
             el.classList.add('ring-4', 'ring-primary-500/50');
             setTimeout(() => el.classList.remove('ring-4', 'ring-primary-500/50'), 2000);
         }
     };
+
+    // Scroll to active day when switching to itinerary tab
+    useEffect(() => {
+        if (activeTab === 'itinerary' && activeDayId) {
+            // Short timeout to allow layout to settle (e.g. from hidden state)
+            setTimeout(() => {
+                const element = document.getElementById(`day-${activeDayId}`);
+                if (element) {
+                    isProgrammaticScroll.current = true;
+                    const offset = window.innerWidth < 640 ? 80 : 120;
+                    const top = element.getBoundingClientRect().top + window.scrollY - offset;
+                    window.scrollTo({ top, behavior: 'auto' });
+                    setTimeout(() => { isProgrammaticScroll.current = false; }, 1000);
+                }
+            }, 50);
+        }
+    }, [activeTab]);
 
     const handleLocationClick = async (itemId: string) => {
         // Find which day this item (activity or stay) belongs to
@@ -1014,56 +1126,77 @@ export default function TripDetailsPage() {
                         </div>
 
                         {/* Lower row: Info and Magic Wand */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2 sm:mt-4">
-                            <div className="min-w-0 flex-1">
-                                <h1 className="text-xl sm:text-2xl font-display font-bold text-gray-900 dark:text-white leading-tight mb-1 text-left">
-                                    <span className="truncate">{activeTrip.title}</span>
-                                </h1>
-                                <div className="flex flex-wrap items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 gap-x-3 gap-y-1">
-                                    <span className="flex items-center justify-between w-full sm:w-auto overflow-hidden">
-                                        <div className="flex items-center min-w-0">
-                                            <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex flex-col mt-4 gap-1">
+                            {mapOverlayInfo ? (
+                                /* State 1: Item Selected */
+                                <div className="animate-slide-up flex flex-col gap-0.5">
+                                    <h1 className="text-xl sm:text-2xl font-display font-bold text-primary-600 dark:text-primary-400 leading-tight">
+                                        {mapOverlayInfo.subtitle}
+                                    </h1>
+                                    <div className="text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300">
+                                        {mapOverlayInfo.fullDate || mapOverlayInfo.title}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        <div className="flex items-center gap-1">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                             </svg>
-                                            <span className="truncate">{activeTrip.destination}</span>
+                                            <span className="truncate max-w-[150px]">{activeTrip.destination}</span>
                                         </div>
-                                        <div className="md:hidden flex items-center gap-1 ml-2">
+                                        <span>•</span>
+                                        <div className="flex items-center gap-1">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span>{format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* State 2: Default Trip Info */
+                                <div className="flex flex-col gap-1">
+                                    <h1 className="text-xl sm:text-2xl font-display font-bold text-gray-900 dark:text-white leading-tight">
+                                        {activeTrip.title}
+                                    </h1>
+                                    <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        <div className="flex items-center gap-1">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">{activeTrip.destination}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            <span>{format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}</span>
+                                        </div>
+                                        {/* Utility Buttons */}
+                                        <div className="flex items-center gap-1 ml-auto sm:ml-2">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); updateWeather(tripId); }}
-                                                className="flex items-center gap-1.5 px-2 py-1 text-gray-400 hover:text-primary-600 bg-gray-50 dark:bg-gray-700/50 rounded-md border border-gray-100 dark:border-gray-600 transition-all"
-                                                title="Refresh weather"
+                                                className="p-1 text-gray-400 hover:text-primary-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                title="Weather"
                                             >
-                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                                 </svg>
-                                                <span className="text-[10px] font-bold">Weather</span>
                                             </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleSyncLocations(); }}
-                                                className="flex items-center gap-1.5 px-2 py-1 text-amber-600 hover:text-amber-700 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-100 dark:border-amber-800 transition-all"
-                                                title="Sync locations"
+                                                className="p-1 text-amber-600 hover:text-amber-700 rounded hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                                title="Sync Locations"
                                             >
-                                                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                                 </svg>
-                                                <span className="text-[10px] font-bold">Locations</span>
                                             </button>
                                         </div>
-                                    </span>
-                                    <span className="flex items-center whitespace-nowrap justify-between w-full sm:w-auto">
-                                        <div className="flex items-center">
-                                            <svg className="w-3.5 h-3.5 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                            {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
-                                        </div>
-                                        <span className="ml-2 sm:ml-4 px-2 py-0.5 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded text-[10px] sm:text-xs font-bold border border-primary-100 dark:border-primary-800 flex-shrink-0">
-                                            {activeTrip.days?.length || 0} Days
-                                        </span>
-                                    </span>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1094,6 +1227,11 @@ export default function TripDetailsPage() {
                                                     showUndo={!!lastGeneratedIds[day.id]}
                                                     onOptimize={() => handleOptimizeRoute(day.id)}
                                                     onLocationClick={handleLocationClick}
+                                                    onDayClick={() => {
+                                                        setActiveDayId(day.id);
+                                                        setFocusedActivityId(null);
+                                                        setCustomMapLocation(null);
+                                                    }}
                                                 />
                                             </div>
                                         </DroppableDay>
@@ -1248,7 +1386,7 @@ export default function TripDetailsPage() {
 
                 {/* Error Toast */}
                 {errorMessage && (
-                    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up px-4 w-full max-w-sm">
+                    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-slide-up px-4 w-full max-w-sm">
                         <div className="bg-red-50 dark:bg-red-900/90 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-200 px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 backdrop-blur-sm">
                             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
