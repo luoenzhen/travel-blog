@@ -14,6 +14,19 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
     // If explicit flags are not provided (default behavior), assume generic info (maybe show both or minimal)
     // Actually, logic from parent decides. If both false, it's a middle day.
     const isMiddleDay = !isCheckIn && !isCheckOut;
+
+    const formatTime = (time: string | undefined | null) => {
+        if (!time) return '';
+        const match = time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (!match) return time;
+        const [, hours, minutes, modifier] = match;
+        let h = parseInt(hours, 10);
+        if (modifier) {
+            if (modifier.toUpperCase() === 'PM' && h < 12) h += 12;
+            if (modifier.toUpperCase() === 'AM' && h === 12) h = 0;
+        }
+        return `${h.toString().padStart(2, '0')}:${minutes}`;
+    };
     return (
         <div id={`stay-${accommodation.id}`} className="pb-2 sm:pb-4 group">
             <div
@@ -71,7 +84,7 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
                                 <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 ${accommodation.imageUrl ? 'text-white/60' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                                 </svg>
-                                In: <span className="font-medium ml-1">{accommodation.checkInTime}</span>
+                                In: <span className="font-medium ml-1">{formatTime(accommodation.checkInTime)}</span>
                             </div>
                         )}
                         {(isCheckOut) && (
@@ -79,7 +92,7 @@ export default function AccommodationCard({ accommodation, isCheckIn, isCheckOut
                                 <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 ${accommodation.imageUrl ? 'text-white/60' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                                 </svg>
-                                Out: <span className="font-medium ml-1">{accommodation.checkOutTime}</span>
+                                Out: <span className="font-medium ml-1">{formatTime(accommodation.checkOutTime)}</span>
                             </div>
                         )}
                     </div>

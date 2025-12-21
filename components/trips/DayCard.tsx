@@ -510,7 +510,7 @@ export default function DayCard({
                                                                     <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                                     </svg>
-                                                                    <span>{(item as Activity).startTime} - {(item as Activity).endTime}</span>
+                                                                    <span>{to24h((item as Activity).startTime)} - {to24h((item as Activity).endTime)}</span>
                                                                 </div>
                                                             </div>
                                                             <button

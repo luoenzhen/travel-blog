@@ -14,7 +14,21 @@ export default function TransportCard({ transport, onClick, onLocationClick }: T
     // Format helpers
     const formatTime = (ts: string | { seconds: number } | { toDate: () => Date } | Date | null | undefined) => {
         if (!ts) return '';
-        if (typeof ts === 'string') return ts.split('T')[1]?.slice(0, 5) || ts;
+        if (typeof ts === 'string') {
+            // Try to match 12h format or just plain H:mm
+            const match = ts.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+            if (match) {
+                const [, hours, minutes, modifier] = match;
+                let h = parseInt(hours, 10);
+                if (modifier) {
+                    if (modifier.toUpperCase() === 'PM' && h < 12) h += 12;
+                    if (modifier.toUpperCase() === 'AM' && h === 12) h = 0;
+                }
+                return `${h.toString().padStart(2, '0')}:${minutes}`;
+            }
+            // Fallback for ISO strings
+            return ts.split('T')[1]?.slice(0, 5) || ts;
+        }
 
         let date: Date;
         if (ts && typeof ts === 'object' && 'seconds' in ts) {

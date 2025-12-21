@@ -42,7 +42,7 @@ export async function fetchWeatherForDestination(destination: string, dates: str
 
         return weatherMap;
     } catch (error) {
-        console.error('Failed to fetch weather:', error);
+        console.warn('Weather service unavailable:', error instanceof Error ? error.message : 'Unknown error');
         return {};
     }
 }
