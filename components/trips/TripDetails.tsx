@@ -185,7 +185,7 @@ export default function TripDetailsPage() {
                 const dayIndex = activeTrip.days.findIndex(d => d.id === activeDayId);
                 if (dayIndex !== -1) {
                     const day = activeTrip.days[dayIndex];
-                    const dateObj = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date as any);
+                    const dateObj = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date as unknown as string);
                     const fullDateStr = isNaN(dateObj.getTime()) ? `Day ${day.dayNumber}` : format(dateObj, 'EEEE, MMMM d');
 
                     return {
@@ -795,7 +795,6 @@ export default function TripDetailsPage() {
                         if (container && window.innerWidth >= 1024) { // Desktop
                             isProgrammaticScroll.current = true;
                             // Calculate relative position within container
-                            const top = el.offsetTop - container.offsetTop;
                             // Note: offsetTop is relative to offsetParent. If container is relative/absolute, this works.
                             // Better: el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop
                             const relativeTop = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
@@ -896,7 +895,7 @@ export default function TripDetailsPage() {
                 }
             }, 50);
         }
-    }, [activeTab]);
+    }, [activeTab, activeDayId]);
 
     const handleLocationClick = async (itemId: string) => {
         // Find which day this item (activity or stay) belongs to
