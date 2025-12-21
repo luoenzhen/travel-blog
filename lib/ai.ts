@@ -196,13 +196,49 @@ export async function generateMagicDayActivities(
     }
 }
 
+async function geocodeWithPhoton(name: string): Promise<{ latitude: number, longitude: number } | null> {
+    try {
+        const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(name)}&limit=1`);
+        const data = await response.json();
+        if (data.features && data.features.length > 0) {
+            const [longitude, latitude] = data.features[0].geometry.coordinates;
+            return { latitude, longitude };
+        }
+        return null;
+    } catch (error) {
+        console.warn(`Photon geocoding failed for ${name}:`, error);
+        return null;
+    }
+}
+
 export async function geocodeLocations(locationNames: string[]): Promise<Record<string, { latitude: number, longitude: number }>> {
-    if (!apiKey || locationNames.length === 0) return {};
+    if (locationNames.length === 0) return {};
+
+    const results: Record<string, { latitude: number, longitude: number }> = {};
+    const remainingNames: string[] = [];
+
+    // Try Photon first for each location (Parallel)
+    const photonPromises = locationNames.map(async (name) => {
+        const coords = await geocodeWithPhoton(name);
+        if (coords) {
+            results[name] = coords;
+        } else {
+            remainingNames.push(name);
+        }
+    });
+
+    await Promise.all(photonPromises);
+
+    // If all found via Photon, return early
+    if (remainingNames.length === 0) return results;
+
+    // Fallback to Gemini for remaining names
+    if (!apiKey) return results;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     const prompt = `Geocode the following location names. Return a JSON object mapping each name to its coordinates:
-    ${JSON.stringify(locationNames)}
+    ${JSON.stringify(remainingNames)}
     
     Response format:
     {
@@ -222,17 +258,19 @@ export async function geocodeLocations(locationNames: string[]): Promise<Record<
         const response = await result.response;
         const text = response.text();
         const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) return {};
-        return JSON.parse(jsonMatch[0]);
+        if (jsonMatch) {
+            const aiResults = JSON.parse(jsonMatch[0]);
+            return { ...results, ...aiResults };
+        }
+        return results;
     } catch (error: unknown) {
         console.error("Geocoding Error:", error);
         if (error instanceof Error && error.message?.includes('429')) {
-            // Re-throw so the UI can catch it and show an alert
             throw new Error("AI Quota exceeded. Please try again later or wait for coordinates.");
         }
         if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
             throw new Error("AI Quota exceeded. Please try again later or wait for coordinates.");
         }
-        return {};
+        return results;
     }
 }
