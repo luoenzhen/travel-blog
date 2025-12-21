@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import Image from 'next/image';
 import { Activity } from '@/types';
 import { CURRENCIES } from '@/lib/constants';
-import { TravelBlogLogo } from '@/components/ui/TravelBlogLogo';
 
 const activitySchema = z.object({
     type: z.enum(['sightseeing', 'dining', 'shopping', 'transport', 'entertainment', 'other']),
@@ -83,8 +82,6 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
     const activityLocation = watch('location');
     const selectedimageUrl = watch('imageUrl');
     const activityType = watch('type');
-    const selectedType = watch('type');
-    const selectedEnvironment = watch('environment');
 
     // Auto-detect environment based on name
     useEffect(() => {
@@ -171,66 +168,36 @@ export default function AddActivityModal({ isOpen, onClose, onSave, onDelete, da
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 overflow-y-auto">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Activity Type
-                        </label>
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                            {(['sightseeing', 'dining', 'shopping', 'transport', 'entertainment', 'other'] as const).map((t) => (
-                                <label
-                                    key={t}
-                                    className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all cursor-pointer ${selectedType === t
-                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                                        : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 text-gray-500'
-                                        }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        value={t}
-                                        {...register('type')}
-                                        className="hidden"
-                                    />
-                                    <span className="text-[10px] font-bold capitalize">{t}</span>
-                                </label>
-                            ))}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Activity Type
+                            </label>
+                            <select
+                                {...register('type')}
+                                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none appearance-none"
+                            >
+                                <option value="sightseeing">Sightseeing</option>
+                                <option value="dining">Dining</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="transport">Transport</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="other">Other</option>
+                            </select>
                         </div>
-                    </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Environment
-                        </label>
-                        <div className="grid grid-cols-3 gap-3">
-                            {(['indoor', 'outdoor', 'both'] as const).map((env) => (
-                                <label
-                                    key={env}
-                                    className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${selectedEnvironment === env
-                                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'
-                                        : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 text-gray-500'
-                                        }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        value={env}
-                                        {...register('environment')}
-                                        className="hidden"
-                                    />
-                                    {env === 'outdoor' && (
-                                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707m12.728 0A9 9 0 115.636 5.636m12.728 12.728L5.636 5.636" />
-                                        </svg>
-                                    )}
-                                    {env === 'indoor' && (
-                                        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                        </svg>
-                                    )}
-                                    {env === 'both' && (
-                                        <TravelBlogLogo className="w-5 h-5 flex-shrink-0" />
-                                    )}
-                                    <span className="text-xs font-bold capitalize">{env}</span>
-                                </label>
-                            ))}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Environment
+                            </label>
+                            <select
+                                {...register('environment')}
+                                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none appearance-none"
+                            >
+                                <option value="outdoor">Outdoor</option>
+                                <option value="indoor">Indoor</option>
+                                <option value="both">Both</option>
+                            </select>
                         </div>
                     </div>
 
