@@ -1079,29 +1079,81 @@ export const useTripStore = create<TripState>((set, get) => ({
 
             set({ loading: true });
 
+            // First, fetch existing trips from Firestore
+            const existingTrips = await getUserTrips();
+
             for (const trip of guestTrips) {
-                // Remove ID so Firebase generates a new one, or keep it if you want to overwrite
+                // Remove ID so Firebase generates a new one
                 const { id, ...tripData } = trip;
 
                 // Convert string dates back to Timestamps if needed
-                const formattedTrip = {
-                    ...tripData,
-                    startDate: typeof trip.startDate === 'string' ? Timestamp.fromDate(new Date(trip.startDate)) : trip.startDate,
-                    endDate: typeof trip.endDate === 'string' ? Timestamp.fromDate(new Date(trip.endDate)) : trip.endDate,
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                    days: (trip.days || []).map((d: any) => ({
-                        ...d,
-                        date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
-                        transportation: (d.transportation || []).map((f: any) => ({
-                            ...f,
-                            departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                            arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                        }))
-                    }))
-                };
+                const startDate = typeof trip.startDate === 'string' ? Timestamp.fromDate(new Date(trip.startDate)) : trip.startDate;
+                const endDate = typeof trip.endDate === 'string' ? Timestamp.fromDate(new Date(trip.endDate)) : trip.endDate;
 
-                await createTrip(formattedTrip);
+                // Check if a similar trip already exists in Firestore
+                // Match by title, destination, and date range
+                const existingTrip = existingTrips.find(existing => {
+                    const existingStart = existing.startDate instanceof Timestamp ? existing.startDate : Timestamp.fromDate(new Date(existing.startDate as any));
+                    const existingEnd = existing.endDate instanceof Timestamp ? existing.endDate : Timestamp.fromDate(new Date(existing.endDate as any));
+
+                    return existing.title === trip.title &&
+                        existing.destination === trip.destination &&
+                        existingStart.toMillis() === startDate.toMillis() &&
+                        existingEnd.toMillis() === endDate.toMillis();
+                });
+
+                if (existingTrip) {
+                    // Trip already exists - merge data if guest version has more details
+                    console.log(`Trip "${trip.title}" already exists in Firestore. Merging data...`);
+
+                    // Only update if guest trip has more days/activities/data
+                    const guestHasMoreData = (trip.days?.length || 0) > (existingTrip.days?.length || 0) ||
+                        (trip.transportation?.length || 0) > (existingTrip.transportation?.length || 0) ||
+                        (trip.stays?.length || 0) > (existingTrip.stays?.length || 0);
+
+                    if (guestHasMoreData) {
+                        const formattedTrip = {
+                            ...tripData,
+                            startDate,
+                            endDate,
+                            days: (trip.days || []).map((d: any) => ({
+                                ...d,
+                                date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
+                                transportation: (d.transportation || []).map((f: any) => ({
+                                    ...f,
+                                    departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
+                                    arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
+                                }))
+                            }))
+                        };
+
+                        await updateTrip(existingTrip.id, formattedTrip);
+                        console.log(`Updated existing trip "${trip.title}" with guest data.`);
+                    } else {
+                        console.log(`Keeping existing Firestore version of "${trip.title}" (has equal or more data).`);
+                    }
+                } else {
+                    // Trip doesn't exist - create new one
+                    const formattedTrip = {
+                        ...tripData,
+                        startDate,
+                        endDate,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        days: (trip.days || []).map((d: any) => ({
+                            ...d,
+                            date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
+                            transportation: (d.transportation || []).map((f: any) => ({
+                                ...f,
+                                departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
+                                arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
+                            }))
+                        }))
+                    };
+
+                    await createTrip(formattedTrip);
+                    console.log(`Created new trip "${trip.title}" in Firestore.`);
+                }
             }
 
             // Clear local storage after successful sync
