@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTripStore } from '@/store/tripStore';
 import { useAuthStore } from '@/store/authStore';
@@ -112,7 +113,7 @@ export default function TripDetailsPage() {
             }
         };
         checkAndSync();
-    }, [user, syncGuestTrips]);
+    }, [user, syncGuestTrips, isSyncing]);
 
     // ... (modal states remain the same) ...
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -1172,7 +1173,7 @@ export default function TripDetailsPage() {
                                             title="Sign Out"
                                         >
                                             {user.photoURL ? (
-                                                <img src={user.photoURL} alt="P" className="w-full h-full rounded-full object-cover" />
+                                                <Image src={user.photoURL} alt="P" width={28} height={28} className="w-full h-full rounded-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-[10px] font-bold">
                                                     {user.displayName?.[0] || 'U'}

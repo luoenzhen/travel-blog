@@ -92,12 +92,12 @@ export const signInWithEmail = async (
 // Sign in with Google
 export const signInWithGoogle = async (): Promise<User> => {
     const { auth, db } = ensureInitialized();
-    try {
-        const provider = new GoogleAuthProvider();
-        const userCredential = await signInWithPopup(auth, provider);
-        const firebaseUser = userCredential.user;
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const firebaseUser = userCredential.user;
 
-        // Check if user already exists
+    // Try to get/create Firestore document, but don't fail if offline
+    try {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
 
         if (userDoc.exists()) {
@@ -112,36 +112,36 @@ export const signInWithGoogle = async (): Promise<User> => {
             bio: '',
             createdAt: serverTimestamp() as unknown as Timestamp,
             updatedAt: serverTimestamp() as unknown as Timestamp,
-            stats: {
-                postsCount: 0,
-                followersCount: 0,
-                followingCount: 0,
-                tripsCount: 0,
-                countriesVisited: 0,
-            },
-            preferences: {
-                theme: 'system',
-                notifications: true,
-                emailNotifications: true,
-                privacy: 'public',
-            },
+            stats: { postsCount: 0, followersCount: 0, followingCount: 0, tripsCount: 0, countriesVisited: 0 },
+            preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' },
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
         return { id: firebaseUser.uid, ...newUser } as User;
-    } catch (error: unknown) {
-        throw new Error((error as Error).message || 'Failed to sign in with Google');
+    } catch {
+        // If Firestore fails (offline), return basic profile from Firebase Auth
+        console.warn('Firestore unavailable during sign-in, using basic profile');
+        return {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || 'Traveler',
+            photoURL: firebaseUser.photoURL || undefined,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+            stats: { postsCount: 0, followersCount: 0, followingCount: 0, tripsCount: 0, countriesVisited: 0 },
+            preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' }
+        } as User;
     }
 };
 
 // Sign in with Yahoo
 export const signInWithYahoo = async (): Promise<User> => {
     const { auth, db } = ensureInitialized();
-    try {
-        const provider = new OAuthProvider('yahoo.com');
-        const userCredential = await signInWithPopup(auth, provider);
-        const firebaseUser = userCredential.user;
+    const provider = new OAuthProvider('yahoo.com');
+    const userCredential = await signInWithPopup(auth, provider);
+    const firebaseUser = userCredential.user;
 
+    try {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
             return { id: firebaseUser.uid, ...userDoc.data() } as User;
@@ -160,19 +160,29 @@ export const signInWithYahoo = async (): Promise<User> => {
 
         await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
         return { id: firebaseUser.uid, ...newUser } as User;
-    } catch (error: unknown) {
-        throw new Error((error as Error).message || 'Failed to sign in with Yahoo');
+    } catch {
+        console.warn('Firestore unavailable during sign-in, using basic profile');
+        return {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || 'Traveler',
+            photoURL: firebaseUser.photoURL || undefined,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+            stats: { postsCount: 0, followersCount: 0, followingCount: 0, tripsCount: 0, countriesVisited: 0 },
+            preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' }
+        } as User;
     }
 };
 
 // Sign in with Microsoft (Hotmail/Outlook)
 export const signInWithMicrosoft = async (): Promise<User> => {
     const { auth, db } = ensureInitialized();
-    try {
-        const provider = new OAuthProvider('microsoft.com');
-        const userCredential = await signInWithPopup(auth, provider);
-        const firebaseUser = userCredential.user;
+    const provider = new OAuthProvider('microsoft.com');
+    const userCredential = await signInWithPopup(auth, provider);
+    const firebaseUser = userCredential.user;
 
+    try {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
             return { id: firebaseUser.uid, ...userDoc.data() } as User;
@@ -191,8 +201,18 @@ export const signInWithMicrosoft = async (): Promise<User> => {
 
         await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
         return { id: firebaseUser.uid, ...newUser } as User;
-    } catch (error: unknown) {
-        throw new Error((error as Error).message || 'Failed to sign in with Microsoft');
+    } catch {
+        console.warn('Firestore unavailable during sign-in, using basic profile');
+        return {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || 'Traveler',
+            photoURL: firebaseUser.photoURL || undefined,
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+            stats: { postsCount: 0, followersCount: 0, followingCount: 0, tripsCount: 0, countriesVisited: 0 },
+            preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' }
+        } as User;
     }
 };
 
@@ -261,7 +281,7 @@ export const onAuthChange = (callback: (user: User | null) => void) => {
                         preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' }
                     } as User);
                 }
-            } catch (error: any) {
+            } catch {
                 console.warn('Firebase: Auth profile fetch failed (probably offline). Using basic profile.');
                 callback({
                     id: firebaseUser.uid,

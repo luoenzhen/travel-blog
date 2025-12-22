@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { TravelBlogLogo } from '@/components/ui/TravelBlogLogo';
@@ -34,7 +35,7 @@ export default function Header() {
             }
         };
         checkAndSync();
-    }, [user, syncGuestTrips]);
+    }, [user, syncGuestTrips, isSyncing]);
 
     // Hide header on splash screen and auth pages
     const isSplash = pathname === '/';
@@ -79,7 +80,7 @@ export default function Header() {
                                 title="Sign Out"
                             >
                                 {user.photoURL ? (
-                                    <img src={user.photoURL} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                                    <Image src={user.photoURL} alt="Profile" width={40} height={40} className="w-full h-full rounded-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold">
                                         {user.displayName?.[0] || 'U'}
