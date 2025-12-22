@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useTripStore } from '@/store/tripStore';
+import { useAuthStore } from '@/store/authStore';
 import { format, differenceInDays, addDays } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
 import DayCard from '@/components/trips/DayCard';
@@ -91,10 +92,27 @@ export default function TripDetailsPage() {
     const params = useParams();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { getTrip, activeTrip, initializeDays, addActivity, addAccommodation, loading, updateTripDetails, updateWeather } = useTripStore();
+    const { getTrip, activeTrip, initializeDays, addActivity, addAccommodation, loading, updateTripDetails, updateWeather, syncGuestTrips } = useTripStore();
+    const { user, signOut } = useAuthStore();
     const [isInitializing, setIsInitializing] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
     const [searchFailed, setSearchFailed] = useState(false);
     const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
+
+    // Sync guest trips when user is detected
+    useEffect(() => {
+        const checkAndSync = async () => {
+            if (user && !isSyncing) {
+                const guestTrips = localStorage.getItem('travel_blog_guest_trips');
+                if (guestTrips && JSON.parse(guestTrips).length > 0) {
+                    setIsSyncing(true);
+                    await syncGuestTrips();
+                    setIsSyncing(false);
+                }
+            }
+        };
+        checkAndSync();
+    }, [user, syncGuestTrips]);
 
     // ... (modal states remain the same) ...
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -1044,7 +1062,7 @@ export default function TripDetailsPage() {
         <DndContext sensors={sensorsMagic} onDragEnd={handleDragEndMagic}>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 pb-20 lg:pb-0">
                 {/* Header */}
-                <div className="bg-white/90 dark:bg-gray-800/90 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-sm backdrop-blur-md supports-[backdrop-filter]:bg-white/60 pt-safe">
+                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 shadow-sm pt-safe">
                     <div className="container mx-auto px-4 py-2 sm:py-4">
                         {/* Top row: Navigation and Actions */}
                         <div className="flex items-center justify-between mb-2 sm:mb-0">
@@ -1134,6 +1152,46 @@ export default function TripDetailsPage() {
                                         <option value="BAIDU">Baidu</option>
                                     </select>
                                 </div>
+
+                                {user ? (
+                                    <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700 transition-all">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[10px] font-bold text-gray-900 dark:text-white truncate max-w-[80px]">
+                                                {user.displayName || 'Traveler'}
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${isSyncing || loading ? 'bg-amber-500 animate-spin' : 'bg-green-500'}`} />
+                                                <span className="text-[8px] text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold">
+                                                    {isSyncing || loading ? 'Syncing' : 'Synced'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => signOut()}
+                                            className="w-7 h-7 rounded-full border border-primary-500/20 p-0.5 hover:border-primary-500 transition-colors"
+                                            title="Sign Out"
+                                        >
+                                            {user.photoURL ? (
+                                                <img src={user.photoURL} alt="P" className="w-full h-full rounded-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-[10px] font-bold">
+                                                    {user.displayName?.[0] || 'U'}
+                                                </div>
+                                            )}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => router.push('/auth/login')}
+                                        className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg shadow-sm transition-all text-xs font-bold whitespace-nowrap"
+                                        title="Sign In to Sync"
+                                    >
+                                        <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                        </svg>
+                                        <span className="hidden sm:inline">Sync Cloud</span>
+                                    </button>
+                                )}
 
                                 <button
                                     onClick={() => setIsEditTripModalOpen(true)}
@@ -1350,6 +1408,31 @@ export default function TripDetailsPage() {
                         </div>
                     </div>
                 </div>
+
+                {(errorMessage || useTripStore.getState().error) && (
+                    <div className="container mx-auto px-4 mt-4 animate-slide-up">
+                        <div className="bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 rounded-2xl p-4 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-sm font-bold text-red-800 dark:text-red-200">Connection Issue</h3>
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">{errorMessage || useTripStore.getState().error}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setErrorMessage(null);
+                                    useTripStore.getState().fetchTrips();
+                                }}
+                                className="px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100 rounded-xl text-xs font-bold transition-colors"
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Main Content - Itinerary & Map Split View */}
                 {activeTab === 'calendar' && (

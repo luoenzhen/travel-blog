@@ -7,6 +7,7 @@ import {
     signInWithPopup,
     sendPasswordResetEmail,
     updateProfile,
+    OAuthProvider,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { auth, db } from './config';
@@ -127,10 +128,71 @@ export const signInWithGoogle = async (): Promise<User> => {
         };
 
         await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-
         return { id: firebaseUser.uid, ...newUser } as User;
     } catch (error: unknown) {
         throw new Error((error as Error).message || 'Failed to sign in with Google');
+    }
+};
+
+// Sign in with Yahoo
+export const signInWithYahoo = async (): Promise<User> => {
+    const { auth, db } = ensureInitialized();
+    try {
+        const provider = new OAuthProvider('yahoo.com');
+        const userCredential = await signInWithPopup(auth, provider);
+        const firebaseUser = userCredential.user;
+
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+            return { id: firebaseUser.uid, ...userDoc.data() } as User;
+        }
+
+        const newUser: Omit<User, 'id'> = {
+            email: firebaseUser.email!,
+            displayName: firebaseUser.displayName || 'Anonymous',
+            photoURL: firebaseUser.photoURL || undefined,
+            bio: '',
+            createdAt: serverTimestamp() as unknown as Timestamp,
+            updatedAt: serverTimestamp() as unknown as Timestamp,
+            stats: { postsCount: 0, followersCount: 0, followingCount: 0, tripsCount: 0, countriesVisited: 0 },
+            preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' },
+        };
+
+        await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+        return { id: firebaseUser.uid, ...newUser } as User;
+    } catch (error: unknown) {
+        throw new Error((error as Error).message || 'Failed to sign in with Yahoo');
+    }
+};
+
+// Sign in with Microsoft (Hotmail/Outlook)
+export const signInWithMicrosoft = async (): Promise<User> => {
+    const { auth, db } = ensureInitialized();
+    try {
+        const provider = new OAuthProvider('microsoft.com');
+        const userCredential = await signInWithPopup(auth, provider);
+        const firebaseUser = userCredential.user;
+
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+            return { id: firebaseUser.uid, ...userDoc.data() } as User;
+        }
+
+        const newUser: Omit<User, 'id'> = {
+            email: firebaseUser.email!,
+            displayName: firebaseUser.displayName || 'Anonymous',
+            photoURL: firebaseUser.photoURL || undefined,
+            bio: '',
+            createdAt: serverTimestamp() as unknown as Timestamp,
+            updatedAt: serverTimestamp() as unknown as Timestamp,
+            stats: { postsCount: 0, followersCount: 0, followingCount: 0, tripsCount: 0, countriesVisited: 0 },
+            preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' },
+        };
+
+        await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+        return { id: firebaseUser.uid, ...newUser } as User;
+    } catch (error: unknown) {
+        throw new Error((error as Error).message || 'Failed to sign in with Microsoft');
     }
 };
 
@@ -182,11 +244,35 @@ export const onAuthChange = (callback: (user: User | null) => void) => {
 
     return onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
-            const userDoc = await getDoc(doc(db!, 'users', firebaseUser.uid));
-            if (userDoc.exists()) {
-                callback({ id: firebaseUser.uid, ...(userDoc.data() as Omit<User, 'id'>) } as User);
-            } else {
-                callback(null);
+            try {
+                const userDoc = await getDoc(doc(db!, 'users', firebaseUser.uid));
+                if (userDoc.exists()) {
+                    callback({ id: firebaseUser.uid, ...(userDoc.data() as Omit<User, 'id'>) } as User);
+                } else {
+                    // Fallback for new users or missing docs
+                    callback({
+                        id: firebaseUser.uid,
+                        email: firebaseUser.email || '',
+                        displayName: firebaseUser.displayName || 'Traveler',
+                        photoURL: firebaseUser.photoURL || undefined,
+                        createdAt: Timestamp.now(),
+                        updatedAt: Timestamp.now(),
+                        stats: { postsCount: 0, followersCount: 0, followingCount: 0, tripsCount: 0, countriesVisited: 0 },
+                        preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' }
+                    } as User);
+                }
+            } catch (error: any) {
+                console.warn('Firebase: Auth profile fetch failed (probably offline). Using basic profile.');
+                callback({
+                    id: firebaseUser.uid,
+                    email: firebaseUser.email || '',
+                    displayName: firebaseUser.displayName || 'Traveler',
+                    photoURL: firebaseUser.photoURL || undefined,
+                    createdAt: Timestamp.now(),
+                    updatedAt: Timestamp.now(),
+                    stats: { postsCount: 0, followersCount: 0, followingCount: 0, tripsCount: 0, countriesVisited: 0 },
+                    preferences: { theme: 'system', notifications: true, emailNotifications: true, privacy: 'public' }
+                } as User);
             }
         } else {
             callback(null);

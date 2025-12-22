@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Trip, DayPlan, Activity, TransportationDetails, AccommodationDetails, TripBudget } from '@/types';
 import { createTrip, getUserTrips, deleteTrip, updateTrip } from '@/lib/firebase/trips';
 import { useAuthStore } from './authStore';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { differenceInDays, addDays, format, parseISO } from 'date-fns';
 import { fetchWeatherForDestination } from '@/lib/weather';
 
@@ -37,6 +37,7 @@ interface TripState {
     addPhoto: (tripId: string, dayId: string, photo: any) => Promise<void>;
     removePhoto: (tripId: string, dayId: string, photoId: string) => Promise<void>;
     updateWeather: (tripId: string) => Promise<void>;
+    syncGuestTrips: () => Promise<void>;
     reset: () => void;
 }
 
@@ -1062,6 +1063,54 @@ export const useTripStore = create<TripState>((set, get) => ({
             await get().updateTripDetails(tripId, { days: updatedDays });
         } catch (error) {
             console.error('Failed to update weather:', error);
+        }
+    },
+
+    syncGuestTrips: async () => {
+        const user = useAuthStore.getState().user;
+        if (!user) return;
+
+        const storedTrips = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!storedTrips) return;
+
+        try {
+            const guestTrips = JSON.parse(storedTrips);
+            if (guestTrips.length === 0) return;
+
+            set({ loading: true });
+
+            for (const trip of guestTrips) {
+                // Remove ID so Firebase generates a new one, or keep it if you want to overwrite
+                const { id, ...tripData } = trip;
+
+                // Convert string dates back to Timestamps if needed
+                const formattedTrip = {
+                    ...tripData,
+                    startDate: typeof trip.startDate === 'string' ? Timestamp.fromDate(new Date(trip.startDate)) : trip.startDate,
+                    endDate: typeof trip.endDate === 'string' ? Timestamp.fromDate(new Date(trip.endDate)) : trip.endDate,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    days: (trip.days || []).map((d: any) => ({
+                        ...d,
+                        date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
+                        transportation: (d.transportation || []).map((f: any) => ({
+                            ...f,
+                            departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
+                            arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
+                        }))
+                    }))
+                };
+
+                await createTrip(formattedTrip);
+            }
+
+            // Clear local storage after successful sync
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            await get().fetchTrips();
+            set({ loading: false });
+        } catch (error: any) {
+            console.error('Failed to sync trips:', error);
+            set({ error: error.message, loading: false });
         }
     },
 

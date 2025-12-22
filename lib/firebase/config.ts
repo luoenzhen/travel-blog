@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -17,11 +17,43 @@ const firebaseConfig = {
 const app = (getApps().length === 0 && firebaseConfig.apiKey) ? initializeApp(firebaseConfig) : getApps()[0];
 
 const auth = app ? getAuth(app) : null;
-const db = app ? getFirestore(app) : null;
 const storage = app ? getStorage(app) : null;
 
-if (!app && typeof window !== 'undefined') {
-    console.warn('Firebase credentials missing. App running in offline/guest mode.');
+let db = null;
+if (app) {
+    if (typeof window !== 'undefined') {
+        try {
+            db = initializeFirestore(app, {
+                localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+                experimentalForceLongPolling: true
+            });
+            console.log('Firebase: Connected with persistence and long polling enabled.');
+        } catch (e: any) {
+            if (e.code === 'failed-precondition') {
+                console.warn('Firebase: Persistence failed (multiple tabs open). Falling back to memory cache.');
+            } else {
+                console.error('Firebase: Initialization error:', e);
+            }
+            db = getFirestore(app);
+        }
+    } else {
+        db = getFirestore(app);
+    }
+}
+
+if (typeof window !== 'undefined') {
+    if (!firebaseConfig.apiKey) {
+        console.error('Firebase: API Key is missing! Check your .env.local file.');
+    }
+    if (!app) {
+        console.warn('Firebase: App failed to initialize. Guest mode active.');
+    }
+} else {
+    // Server-side logging
+    console.log('Firebase: Initializing on server for Project:', firebaseConfig.projectId || 'UNKNOWN');
+    if (!firebaseConfig.apiKey) {
+        console.warn('Firebase: API Key is missing on server environment.');
+    }
 }
 
 export { app, auth, db, storage };
