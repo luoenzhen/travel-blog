@@ -13,6 +13,7 @@ import {
     UserCredential,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { Browser } from '@capacitor/browser';
 import { auth, db } from './config';
 import { User } from '@/types';
 
@@ -175,21 +176,27 @@ export const signInWithEmail = async (
     }
 };
 
-// Helper to detect iOS Simulator
-const isIOSSimulator = () => {
+// Helper to detect iOS Simulator - only used for error messages, not blocking
+const isLikelyIOSSimulator = (error: unknown): boolean => {
     if (typeof window === 'undefined') return false;
-    const ua = navigator.userAgent || '';
-    return /iPhone|iPad|iPod/i.test(ua) && /Mac OS X/i.test(ua);
+    const errorMessage = String((error as { message?: string })?.message || '');
+    const errorString = String(error || '');
+    
+    // Check for simulator-specific error patterns
+    if (errorMessage.includes('invalid input parameters') || 
+        errorMessage.includes('Failed to open URL') ||
+        errorString.includes('NSOSStatusErrorDomain') ||
+        errorString.includes('invalid input parameters')) {
+        // Also check user agent as secondary confirmation
+        const ua = navigator.userAgent || '';
+        return /iPhone|iPad|iPod/i.test(ua) && /Mac OS X/i.test(ua);
+    }
+    return false;
 };
 
 // Sign in with Google
 export const signInWithGoogle = async (): Promise<User> => {
     const { auth } = ensureInitialized();
-    
-    // Check if we're in iOS Simulator - OAuth doesn't work there
-    if (isIOSSimulator()) {
-        throw new Error('OAuth sign-in is not available in iOS Simulator. Please use email/password authentication or test on a real device.');
-    }
     
     const provider = new GoogleAuthProvider();
     
@@ -201,38 +208,125 @@ export const signInWithGoogle = async (): Promise<User> => {
     
     const useRedirect = isCapacitor();
     console.log('Sign in with Google - useRedirect:', useRedirect, 'UserAgent:', navigator.userAgent);
+    console.log('Auth domain:', auth.config.authDomain);
+    console.log('Current URL:', window.location.href);
     
-    // Always try popup first (works better in most browsers)
+    // For Capacitor/iOS, use Browser plugin to open OAuth in Safari
+    // signInWithRedirect doesn't work properly in Capacitor WebView
+    if (useRedirect) {
+        console.log('Using Browser plugin for Capacitor/iOS OAuth flow');
+        
+        // Check if we're in simulator - more accurate detection
+        // Real iOS devices have "Mobile" in user agent, simulators don't
+        // Also check platform - simulators show "MacIntel" as platform
+        const ua = navigator.userAgent || '';
+        const platform = navigator.platform || '';
+        const isSimulator = (
+            (/iPhone|iPad|iPod/i.test(ua) && platform === 'MacIntel') ||
+            ua.includes('Simulator') ||
+            (!ua.includes('Mobile') && /iPhone|iPad|iPod/i.test(ua) && platform.includes('Mac'))
+        );
+        
+        if (isSimulator) {
+            console.log('iOS Simulator detected - blocking OAuth');
+            throw new Error('OAuth sign-in is not available in iOS Simulator. Please use email/password authentication or test on a real device.');
+        }
+        
+        console.log('Real iOS device detected - proceeding with OAuth');
+        
+        try {
+            // signInWithRedirect hangs in Capacitor WebView, so we'll use a timeout
+            // and then manually navigate to the OAuth URL
+            console.log('Attempting signInWithRedirect with timeout...');
+            
+            // Start the redirect but don't wait for it
+            const redirectPromise = signInWithRedirect(auth, provider);
+            
+            // Add a timeout - if redirect doesn't happen quickly, it's stuck
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error('Redirect timeout - WebView may not support redirects'));
+                }, 2000); // 2 second timeout
+            });
+            
+            try {
+                await Promise.race([redirectPromise, timeoutPromise]);
+                // If we get here, redirect happened
+                console.log('Redirect initiated by Firebase');
+                return new Promise(() => {});
+            } catch {
+                // Redirect is stuck - need to manually open OAuth URL
+                console.log('signInWithRedirect is stuck, using manual OAuth URL construction');
+                
+                // Construct the OAuth URL manually using Firebase's expected format
+                // We'll use the Firebase auth domain and construct a proper redirect URL
+                const authDomain = auth.config.authDomain;
+                const apiKey = auth.config.apiKey;
+                
+                // Use Firebase's auth domain as the redirect URL (Firebase will handle it)
+                const redirectUrl = encodeURIComponent(`https://${authDomain}/auth/login`);
+                
+                // Use Firebase's auth handler to construct the proper OAuth URL
+                const authUrl = `https://${authDomain}/__/auth/handler?apiKey=${apiKey}&authType=signInWithRedirect&providerId=google.com&redirectUrl=${redirectUrl}`;
+                
+                console.log('Opening OAuth URL in Safari via Browser plugin:', authUrl);
+                
+                // Open in Safari using Browser plugin
+                await Browser.open({ url: authUrl });
+                
+                console.log('Browser opened - complete sign-in in Safari');
+                console.log('After sign-in, Safari will redirect back to the app');
+                
+                // Return promise that never resolves - redirect will happen
+                return new Promise(() => {});
+            }
+        } catch (redirectError: unknown) {
+            console.error('OAuth flow failed:', redirectError);
+            
+            const redirectAuthError = redirectError as { code?: string; message?: string };
+            const errorMsg = redirectAuthError.message || 
+                'Unable to sign in with Google. Please try using email/password authentication.';
+            throw new Error(errorMsg);
+        }
+    }
+    
+    // For web browsers, try popup first with timeout
     try {
         console.log('Attempting popup flow for Google sign-in');
-        console.log('Auth domain:', auth.config.authDomain);
-        console.log('Current URL:', window.location.href);
         
-        const userCredential = await signInWithPopup(auth, provider);
+        // Add timeout to detect if popup hangs
+        const popupPromise = signInWithPopup(auth, provider);
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+                reject(new Error('Popup timeout - popup may be blocked or not supported'));
+            }, 3000); // 3 second timeout
+        });
+        
+        const userCredential = await Promise.race([popupPromise, timeoutPromise]);
         console.log('Popup flow successful');
         return processUserCredential(userCredential);
     } catch (popupError: unknown) {
         const popupAuthError = popupError as { code?: string; message?: string };
         console.error('Popup flow failed:', popupAuthError.code, popupAuthError.message, popupError);
         
-        // If popup is blocked or closed, try redirect (but not in simulator)
+        // Fallback to redirect if popup fails
         if (popupAuthError.code === 'auth/popup-blocked' || 
             popupAuthError.code === 'auth/popup-closed-by-user' ||
             popupAuthError.code === 'auth/cancelled-popup-request' ||
-            useRedirect) {
+            popupAuthError.message?.includes('timeout')) {
             console.log('Falling back to redirect flow');
             try {
                 await signInWithRedirect(auth, provider);
-                // The redirect will navigate away
+                console.log('Redirect initiated - page should navigate');
                 return new Promise(() => {});
             } catch (redirectError: unknown) {
                 console.error('Redirect also failed:', redirectError);
-                const redirectAuthError = redirectError as { code?: string; message?: string };
-                // Provide helpful error message
-                if (redirectAuthError.message?.includes('invalid input parameters') || 
-                    redirectAuthError.message?.includes('Failed to open URL')) {
+                
+                // Check if this is a simulator-specific error
+                if (isLikelyIOSSimulator(redirectError)) {
                     throw new Error('OAuth sign-in is not available in iOS Simulator. Please use email/password authentication or test on a real device.');
                 }
+                
                 // If redirect also fails, throw the original popup error with helpful message
                 const errorMsg = popupAuthError.message || 
                     'Unable to sign in. Popups may be blocked. Please allow popups for this site or try using email/password.';
@@ -248,28 +342,26 @@ export const signInWithGoogle = async (): Promise<User> => {
 export const signInWithYahoo = async (): Promise<User> => {
     const { auth } = ensureInitialized();
     
-    // Check if we're in iOS Simulator
-    if (isIOSSimulator()) {
-        throw new Error('OAuth sign-in is not available in iOS Simulator. Please use email/password authentication or test on a real device.');
-    }
-    
     const provider = new OAuthProvider('yahoo.com');
     
+    const useRedirect = isCapacitor();
+    
+    // Try popup first for all platforms
     try {
         const userCredential = await signInWithPopup(auth, provider);
         return processUserCredential(userCredential);
     } catch (popupError: unknown) {
         const popupAuthError = popupError as { code?: string; message?: string };
-        if (popupAuthError.code === 'auth/popup-blocked' || 
-            popupAuthError.code === 'auth/popup-closed-by-user' ||
-            isCapacitor()) {
+        
+        // Fallback to redirect if popup fails or in Capacitor
+        if (useRedirect || 
+            popupAuthError.code === 'auth/popup-blocked' || 
+            popupAuthError.code === 'auth/popup-closed-by-user') {
             try {
                 await signInWithRedirect(auth, provider);
                 return new Promise(() => {});
             } catch (redirectError: unknown) {
-                const redirectAuthError = redirectError as { code?: string; message?: string };
-                if (redirectAuthError.message?.includes('invalid input parameters') || 
-                    redirectAuthError.message?.includes('Failed to open URL')) {
+                if (isLikelyIOSSimulator(redirectError)) {
                     throw new Error('OAuth sign-in is not available in iOS Simulator. Please use email/password authentication or test on a real device.');
                 }
                 throw redirectError;
@@ -283,11 +375,6 @@ export const signInWithYahoo = async (): Promise<User> => {
 export const signInWithMicrosoft = async (): Promise<User> => {
     const { auth } = ensureInitialized();
     
-    // Check if we're in iOS Simulator
-    if (isIOSSimulator()) {
-        throw new Error('OAuth sign-in is not available in iOS Simulator. Please use email/password authentication or test on a real device.');
-    }
-    
     const provider = new OAuthProvider('microsoft.com');
     
     // Add prompt parameter to force account selection
@@ -295,21 +382,24 @@ export const signInWithMicrosoft = async (): Promise<User> => {
         prompt: 'select_account'
     });
     
+    const useRedirect = isCapacitor();
+    
+    // Try popup first for all platforms
     try {
         const userCredential = await signInWithPopup(auth, provider);
         return processUserCredential(userCredential);
     } catch (popupError: unknown) {
         const popupAuthError = popupError as { code?: string; message?: string };
-        if (popupAuthError.code === 'auth/popup-blocked' || 
-            popupAuthError.code === 'auth/popup-closed-by-user' ||
-            isCapacitor()) {
+        
+        // Fallback to redirect if popup fails or in Capacitor
+        if (useRedirect || 
+            popupAuthError.code === 'auth/popup-blocked' || 
+            popupAuthError.code === 'auth/popup-closed-by-user') {
             try {
                 await signInWithRedirect(auth, provider);
                 return new Promise(() => {});
             } catch (redirectError: unknown) {
-                const redirectAuthError = redirectError as { code?: string; message?: string };
-                if (redirectAuthError.message?.includes('invalid input parameters') || 
-                    redirectAuthError.message?.includes('Failed to open URL')) {
+                if (isLikelyIOSSimulator(redirectError)) {
                     throw new Error('OAuth sign-in is not available in iOS Simulator. Please use email/password authentication or test on a real device.');
                 }
                 throw redirectError;
