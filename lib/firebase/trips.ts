@@ -5,6 +5,7 @@ import {
     deleteDoc,
     doc,
     getDocs,
+    getDocsFromCache,
     getDoc,
     query,
     where,
@@ -37,8 +38,12 @@ export const createTrip = async (tripData: Partial<Trip>): Promise<Trip> => {
         throw new Error('User must be logged in to create a trip');
     }
 
+    // Destructure to remove 'id' if it exists in tripData, ensuring we don't try to write it to Firestore
+    // as a field, which likely causes "Missing or insufficient permissions" error.
+    const { id, userId, ...restOfTripData } = tripData;
+
     const newTripData = {
-        ...tripData,
+        ...restOfTripData,
         userId: user.uid,
         collaborators: [],
         createdAt: serverTimestamp(),
@@ -71,12 +76,25 @@ export const getUserTrips = async (): Promise<Trip[]> => {
         orderBy('startDate', 'desc')
     );
 
-    const querySnapshot = await getDocs(q);
-
-    return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    })) as Trip[];
+    try {
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        })) as Trip[];
+    } catch (error) {
+        console.warn('Network fetch failed, attempting cache fallback:', error);
+        try {
+            const cacheSnapshot = await getDocsFromCache(q);
+            return cacheSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as Trip[];
+        } catch (cacheError) {
+            console.error('Cache fallback also failed:', cacheError);
+            throw error;
+        }
+    }
 };
 
 // Get a single trip by ID

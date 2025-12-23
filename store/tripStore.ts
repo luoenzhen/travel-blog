@@ -51,8 +51,24 @@ const generateId = () => {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
+// Helper to remove undefined values for Firestore
+const removeUndefined = (obj: any): any => {
+    if (typeof obj !== 'object' || obj === null) return obj;
+    if (obj instanceof Timestamp) return obj;
+    if (Array.isArray(obj)) return obj.map(removeUndefined);
+
+    const newObj: any = {};
+    for (const key in obj) {
+        const value = removeUndefined(obj[key]);
+        if (value !== undefined) {
+            newObj[key] = value;
+        }
+    }
+    return newObj;
+};
+
 // Helper to save to local storage
-const saveToLocalStorage = (trips: Trip[]) => {
+const saveToLocalStorage = (trips: Trip[], key: string = LOCAL_STORAGE_KEY) => {
     if (typeof window === 'undefined') return;
 
     const serializedTrips = trips.map(t => ({
@@ -73,8 +89,10 @@ const saveToLocalStorage = (trips: Trip[]) => {
         }))
     }));
 
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serializedTrips));
+    localStorage.setItem(key, JSON.stringify(serializedTrips));
 };
+
+const getUserCacheKey = (uid: string) => `travel_blog_user_cache_${uid}`;
 
 export const useTripStore = create<TripState>((set, get) => ({
     trips: [],
@@ -91,12 +109,16 @@ export const useTripStore = create<TripState>((set, get) => ({
                 try {
                     const fetchedTrips = await getUserTrips();
                     set({ trips: fetchedTrips, loading: false });
+                    // Cache successful fetch for offline use
+                    saveToLocalStorage(fetchedTrips, getUserCacheKey(user.id));
                 } catch (firestoreError: any) {
                     // If Firestore fails (e.g., offline), fall back to localStorage
                     console.warn('Firestore fetch failed, falling back to localStorage:', firestoreError.message);
 
                     if (typeof window !== 'undefined') {
-                        const storedTrips = localStorage.getItem(LOCAL_STORAGE_KEY);
+                        // Try user-specific cache first
+                        const storedTrips = localStorage.getItem(getUserCacheKey(user.id));
+
                         if (storedTrips) {
                             const parsedTrips = JSON.parse(storedTrips).map((trip: any) => ({
                                 ...trip,
@@ -121,10 +143,11 @@ export const useTripStore = create<TripState>((set, get) => ({
                                 error: 'Offline mode - showing cached trips'
                             });
                         } else {
+                            // Only checks guest cache as a desperate last resort, usually irrelevant for logged in users
                             set({
                                 trips: [],
                                 loading: false,
-                                error: 'No internet connection and no cached trips available'
+                                error: `Connection Error: ${firestoreError.message || 'Unknown error'}. No cached trips available.`
                             });
                         }
                     } else {
@@ -923,28 +946,149 @@ export const useTripStore = create<TripState>((set, get) => ({
                 }
             };
 
+            // Helper to strict sanitize Location
+            const sanitizeLocation = (loc: any) => ({
+                name: loc?.name || 'Unknown',
+                address: loc?.address || '',
+                city: loc?.city || '',
+                country: loc?.country || '',
+                countryCode: loc?.countryCode || '',
+                latitude: Number(loc?.latitude) || 0,
+                longitude: Number(loc?.longitude) || 0,
+                placeId: loc?.placeId || '',
+                notes: loc?.notes || ''
+            });
+
             const importedTrip: Trip = {
-                ...tripData,
+                // Whitelist fields to avoid 'Missing or insufficient permissions' from extra fields in JSON
                 id: newTripId,
-                title: `${tripData.title || 'Imported Trip'}`,
                 userId: user ? user.id : 'guest',
+                title: tripData.title || 'Imported Trip',
+                destination: tripData.destination || 'Unknown',
+                coverPhoto: tripData.coverPhoto,
                 startDate: toTimestamp(tripData.startDate),
                 endDate: toTimestamp(tripData.endDate),
+                budget: {
+                    totalBudget: Number(tripData.budget?.totalBudget) || 0,
+                    currency: tripData.budget?.currency || 'USD',
+                    categories: {
+                        flights: Number(tripData.budget?.categories?.flights) || 0,
+                        accommodation: Number(tripData.budget?.categories?.accommodation) || 0,
+                        food: Number(tripData.budget?.categories?.food) || 0,
+                        activities: Number(tripData.budget?.categories?.activities) || 0,
+                        shopping: Number(tripData.budget?.categories?.shopping) || 0,
+                        transportation: Number(tripData.budget?.categories?.transportation) || 0,
+                        other: Number(tripData.budget?.categories?.other) || 0,
+                    },
+                    actualSpending: {
+                        flights: Number(tripData.budget?.actualSpending?.flights) || 0,
+                        accommodation: Number(tripData.budget?.actualSpending?.accommodation) || 0,
+                        food: Number(tripData.budget?.actualSpending?.food) || 0,
+                        activities: Number(tripData.budget?.actualSpending?.activities) || 0,
+                        shopping: Number(tripData.budget?.actualSpending?.shopping) || 0,
+                        transportation: Number(tripData.budget?.actualSpending?.transportation) || 0,
+                        other: Number(tripData.budget?.actualSpending?.other) || 0,
+                    },
+                    dailyLimit: Number(tripData.budget?.dailyLimit) || 0
+                },
+                stays: (tripData.stays || []).map((s: any) => ({
+                    id: generateId(),
+                    name: s.name || 'Unknown Stay',
+                    type: s.type || 'other',
+                    address: s.address || '',
+                    location: sanitizeLocation(s.location),
+                    checkInTime: s.checkInTime || '',
+                    checkOutTime: s.checkOutTime || '',
+                    cost: Number(s.cost) || 0,
+                    currency: s.currency || 'USD',
+                    bookingConfirmation: s.bookingConfirmation || '',
+                    amenities: s.amenities || []
+                })),
+                transportation: (tripData.transportation || []).map((f: any) => ({
+                    id: generateId(),
+                    type: f.type || 'other',
+                    airline: f.airline || '',
+                    flightNumber: f.flightNumber || '',
+                    departureAirport: f.departureAirport || '',
+                    departureAirportCode: f.departureAirportCode || '',
+                    departureTime: toTimestamp(f.departureTime),
+                    arrivalAirport: f.arrivalAirport || '',
+                    arrivalAirportCode: f.arrivalAirportCode || '',
+                    arrivalTime: toTimestamp(f.arrivalTime),
+                    bookingReference: f.bookingReference || '',
+                    cost: Number(f.cost) || 0,
+                    currency: f.currency || 'USD',
+                    notes: f.notes || ''
+                })),
+                collaborators: [],
+                isPublic: false,
+                status: 'draft',
                 createdAt: now,
                 updatedAt: now,
                 days: (tripData.days || []).map((day: any) => ({
-                    ...day,
                     id: generateId(),
                     tripId: newTripId,
                     date: toTimestamp(day.date),
-                    transportation: (day.transportation || day.flights || []).map((f: any) => ({ ...f, id: generateId(), departureTime: toTimestamp(f.departureTime), arrivalTime: toTimestamp(f.arrivalTime) })),
-                    activities: (day.activities || []).map((a: any) => ({ ...a, id: generateId() })),
-                    accommodation: day.accommodation ? { ...day.accommodation, id: generateId() } : undefined
+                    dayNumber: Number(day.dayNumber) || 0,
+                    dailyBudget: Number(day.dailyBudget) || 0,
+                    notes: day.notes || '',
+                    isCompleted: day.isCompleted || false,
+
+                    // Strictly reconstruct nested Arrays
+                    transportation: (day.transportation || day.flights || []).map((f: any) => ({
+                        id: generateId(),
+                        type: f.type || 'other',
+                        airline: f.airline || '',
+                        flightNumber: f.flightNumber || '',
+                        departureAirport: f.departureAirport || '',
+                        departureAirportCode: f.departureAirportCode || '',
+                        departureTime: toTimestamp(f.departureTime),
+                        arrivalAirport: f.arrivalAirport || '',
+                        arrivalAirportCode: f.arrivalAirportCode || '',
+                        arrivalTime: toTimestamp(f.arrivalTime),
+                        bookingReference: f.bookingReference || '',
+                        cost: Number(f.cost) || 0,
+                        currency: f.currency || 'USD',
+                        notes: f.notes || ''
+                    })),
+
+                    activities: (day.activities || []).map((a: any) => ({
+                        id: generateId(),
+                        type: a.type || 'other',
+                        name: a.name || 'Untitled Activity',
+                        description: a.description || '',
+                        startTime: a.startTime || '',
+                        endTime: a.endTime || '',
+                        cost: Number(a.cost) || 0,
+                        currency: a.currency || 'USD',
+                        location: sanitizeLocation(a.location),
+                        bookingRequired: a.bookingRequired || false,
+                        notes: a.notes || '',
+                        photos: []
+                    })),
+
+                    accommodation: day.accommodation ? {
+                        id: generateId(),
+                        name: day.accommodation.name || 'Unknown Stay',
+                        type: day.accommodation.type || 'other',
+                        address: day.accommodation.address || '',
+                        location: sanitizeLocation(day.accommodation.location),
+                        checkInTime: day.accommodation.checkInTime || '',
+                        checkOutTime: day.accommodation.checkOutTime || '',
+                        cost: Number(day.accommodation.cost) || 0,
+                        currency: day.accommodation.currency || 'USD',
+                        bookingConfirmation: day.accommodation.bookingConfirmation || '',
+                        amenities: day.accommodation.amenities || []
+                    } : undefined,
+
+                    dining: [], // Reset dining for simplicity or strict map if needed
+                    photos: []
                 }))
             };
 
             if (user) {
-                const newTrip = await createTrip(importedTrip);
+                const sanitizedTrip = removeUndefined(importedTrip);
+                const newTrip = await createTrip(sanitizedTrip);
                 set((state) => ({
                     trips: [newTrip, ...state.trips],
                     loading: false
