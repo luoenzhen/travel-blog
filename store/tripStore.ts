@@ -67,6 +67,41 @@ const removeUndefined = (obj: any): any => {
     return newObj;
 };
 
+// Helper to migrate trip-level transportation to day-level (backward compatibility)
+const migrateTransportationToDays = (trip: Trip): Trip => {
+    // If trip has transportation items but days don't have them, distribute them
+    if (trip.transportation && trip.transportation.length > 0) {
+        const updatedDays = trip.days.map(day => {
+            const dayDate = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
+            dayDate.setHours(0, 0, 0, 0);
+
+            // Find all transportation items for this day
+            const dayTransportation = trip.transportation?.filter(transport => {
+                const departureDate = transport.departureTime instanceof Timestamp 
+                    ? transport.departureTime.toDate() 
+                    : new Date(transport.departureTime);
+                departureDate.setHours(0, 0, 0, 0);
+                return departureDate.getTime() === dayDate.getTime();
+            }) || [];
+
+            // Merge with existing day transportation, avoiding duplicates
+            const existingIds = new Set((day.transportation || []).map(t => t.id));
+            const newTransportation = dayTransportation.filter(t => !existingIds.has(t.id));
+
+            return {
+                ...day,
+                transportation: [...(day.transportation || []), ...newTransportation]
+            };
+        });
+
+        return {
+            ...trip,
+            days: updatedDays
+        };
+    }
+    return trip;
+};
+
 // Helper to save to local storage
 const saveToLocalStorage = (trips: Trip[], key: string = LOCAL_STORAGE_KEY) => {
     if (typeof window === 'undefined') return;
@@ -113,9 +148,11 @@ export const useTripStore = create<TripState>((set, get) => ({
             if (user) {
                 try {
                     const fetchedTrips = await getUserTrips();
-                    set({ trips: fetchedTrips, loading: false });
+                    // Apply migration to distribute trip-level transportation to days
+                    const migratedTrips = fetchedTrips.map(migrateTransportationToDays);
+                    set({ trips: migratedTrips, loading: false });
                     // Cache successful fetch for offline use
-                    saveToLocalStorage(fetchedTrips, getUserCacheKey(user.id));
+                    saveToLocalStorage(migratedTrips, getUserCacheKey(user.id));
                 } catch (firestoreError: any) {
                     // If Firestore fails (e.g., offline), fall back to localStorage
                     console.warn('Firestore fetch failed, falling back to localStorage:', firestoreError.message);
@@ -147,8 +184,10 @@ export const useTripStore = create<TripState>((set, get) => ({
                                     accommodation: d.accommodation || undefined
                                 }))
                             }));
+                            // Apply migration to distribute trip-level transportation to days
+                            const migratedTrips = parsedTrips.map(migrateTransportationToDays);
                             set({
-                                trips: parsedTrips,
+                                trips: migratedTrips,
                                 loading: false,
                                 error: 'Offline mode - showing cached trips'
                             });
@@ -190,7 +229,9 @@ export const useTripStore = create<TripState>((set, get) => ({
                                 accommodation: d.accommodation || undefined
                             }))
                         }));
-                        set({ trips: parsedTrips, loading: false });
+                        // Apply migration to distribute trip-level transportation to days
+                        const migratedTrips = parsedTrips.map(migrateTransportationToDays);
+                        set({ trips: migratedTrips, loading: false });
                     } else {
                         set({ trips: [], loading: false });
                     }
@@ -526,7 +567,27 @@ export const useTripStore = create<TripState>((set, get) => ({
         // 1. Add to central "transportation" list
         const updatedTransportation = [...(trip.transportation || []), transport];
 
-        // 2. Update Budget
+        // 2. Find the matching day based on departure date and add to that day's transportation array
+        const departureDate = transport.departureTime instanceof Timestamp 
+            ? transport.departureTime.toDate() 
+            : new Date(transport.departureTime);
+        departureDate.setHours(0, 0, 0, 0);
+
+        const updatedDays = trip.days.map(day => {
+            const dayDate = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
+            dayDate.setHours(0, 0, 0, 0);
+
+            // If the departure date matches this day, add the transportation
+            if (dayDate.getTime() === departureDate.getTime()) {
+                return {
+                    ...day,
+                    transportation: [...(day.transportation || []), transport]
+                };
+            }
+            return day;
+        });
+
+        // 3. Update Budget
         const newSpending = { ...trip.budget.actualSpending };
         if (transport.type === 'flight') {
             newSpending.flights = (newSpending.flights || 0) + (transport.cost || 0);
@@ -537,6 +598,7 @@ export const useTripStore = create<TripState>((set, get) => ({
         const updatedTrip = {
             ...trip,
             transportation: updatedTransportation,
+            days: updatedDays,
             budget: {
                 ...trip.budget,
                 actualSpending: newSpending
@@ -554,6 +616,7 @@ export const useTripStore = create<TripState>((set, get) => ({
         if (user) {
             await updateTrip(trip.id, {
                 transportation: updatedTransportation,
+                days: updatedDays,
                 budget: updatedTrip.budget
             });
         } else {
@@ -573,7 +636,38 @@ export const useTripStore = create<TripState>((set, get) => ({
         const oldTransport = (trip.transportation || []).find(f => f.id === transport.id);
         const costDiff = (transport.cost || 0) - (oldTransport?.cost || 0);
 
-        // 2. Update Budget
+        // 2. Update days - remove from old day and add to new day if date changed
+        const oldDepartureDate = oldTransport?.departureTime instanceof Timestamp 
+            ? oldTransport.departureTime.toDate() 
+            : oldTransport?.departureTime ? new Date(oldTransport.departureTime) : null;
+        if (oldDepartureDate) oldDepartureDate.setHours(0, 0, 0, 0);
+
+        const newDepartureDate = transport.departureTime instanceof Timestamp 
+            ? transport.departureTime.toDate() 
+            : new Date(transport.departureTime);
+        newDepartureDate.setHours(0, 0, 0, 0);
+
+        const updatedDays = trip.days.map(day => {
+            const dayDate = day.date instanceof Timestamp ? day.date.toDate() : new Date(day.date);
+            dayDate.setHours(0, 0, 0, 0);
+
+            let updatedDayTransportation = [...(day.transportation || [])];
+
+            // Remove from old day if it exists
+            updatedDayTransportation = updatedDayTransportation.filter(t => t.id !== transport.id);
+
+            // Add to new day if this is the matching day
+            if (dayDate.getTime() === newDepartureDate.getTime()) {
+                updatedDayTransportation.push(transport);
+            }
+
+            return {
+                ...day,
+                transportation: updatedDayTransportation
+            };
+        });
+
+        // 3. Update Budget
         const newSpending = { ...trip.budget.actualSpending };
         if (transport.type === 'flight') {
             newSpending.flights = (newSpending.flights || 0) + costDiff;
@@ -584,6 +678,7 @@ export const useTripStore = create<TripState>((set, get) => ({
         const updatedTrip = {
             ...trip,
             transportation: updatedTransportation,
+            days: updatedDays,
             budget: {
                 ...trip.budget,
                 actualSpending: newSpending
@@ -601,6 +696,7 @@ export const useTripStore = create<TripState>((set, get) => ({
         if (user) {
             await updateTrip(trip.id, {
                 transportation: updatedTransportation,
+                days: updatedDays,
                 budget: updatedTrip.budget
             });
         } else {
@@ -620,7 +716,13 @@ export const useTripStore = create<TripState>((set, get) => ({
         const transportToRemove = (trip.transportation || []).find(f => f.id === transportId);
         const costToRemove = transportToRemove?.cost || 0;
 
-        // 2. Update Budget
+        // 2. Remove from all days
+        const updatedDays = trip.days.map(day => ({
+            ...day,
+            transportation: (day.transportation || []).filter(t => t.id !== transportId)
+        }));
+
+        // 3. Update Budget
         const newSpending = { ...trip.budget.actualSpending };
         if (transportToRemove?.type === 'flight') {
             newSpending.flights = Math.max(0, (newSpending.flights || 0) - costToRemove);
@@ -631,6 +733,7 @@ export const useTripStore = create<TripState>((set, get) => ({
         const updatedTrip = {
             ...trip,
             transportation: updatedTransportation,
+            days: updatedDays,
             budget: {
                 ...trip.budget,
                 actualSpending: newSpending
@@ -648,6 +751,7 @@ export const useTripStore = create<TripState>((set, get) => ({
         if (user) {
             await updateTrip(trip.id, {
                 transportation: updatedTransportation,
+                days: updatedDays,
                 budget: updatedTrip.budget
             });
         } else {

@@ -278,10 +278,18 @@ export default function TripDetailsPage() {
     const processedDays = useMemo(() => {
         if (!activeTrip || !activeTrip.days) return [];
 
-        // If no global stays, just return days as is (support legacy or empty)
-        if (!activeTrip.stays || activeTrip.stays.length === 0) return activeTrip.days;
+        // If no global stays AND no transportation, just return days as is (support legacy or empty)
+        const hasStays = activeTrip.stays && activeTrip.stays.length > 0;
+        const hasTransportation = activeTrip.transportation && activeTrip.transportation.length > 0;
+        
+        console.log('[processedDays] hasStays:', hasStays, 'hasTransportation:', hasTransportation);
+        if (hasTransportation && activeTrip.transportation) {
+            console.log('[processedDays] Transportation count:', activeTrip.transportation.length);
+            console.log('[processedDays] Transportation data:', activeTrip.transportation);
+        }
+        
+        if (!hasStays && !hasTransportation) return activeTrip.days;
 
-        // ... (rest of processedDays logic) ...
         // Helper to parse "YYYY-MM-DD" safely
         const parseYMD = (ymd: string): number => {
             if (!ymd) return 0;
@@ -310,7 +318,11 @@ export default function TripDetailsPage() {
                 newDay.accommodationCheckout = undefined;
 
                 // Sync Transportation (Project global transportation onto day if they match date)
-                if (activeTrip.transportation && activeTrip.transportation.length > 0) {
+                if (hasTransportation && activeTrip.transportation) {
+                    // Use ISO date string for comparison (YYYY-MM-DD) to avoid timezone issues
+                    const dayDateStr = dayDate.toISOString().split('T')[0];
+                    console.log(`[processedDays] Processing day: ${dayDateStr}`);
+                    
                     newDay.transportation = activeTrip.transportation.filter(f => {
                         // departureTime is timestamp
                         let fDate: Date;
@@ -323,28 +335,43 @@ export default function TripDetailsPage() {
                             fDate = new Date(f.departureTime as unknown as string | number | Date);
                         }
 
-                        if (isNaN(fDate.getTime())) return false;
-                        return fDate.toLocaleDateString('en-CA') === dayDate.toLocaleDateString('en-CA');
+                        if (isNaN(fDate.getTime())) {
+                            console.log('[processedDays] Invalid date for transport:', f);
+                            return false;
+                        }
+                        
+                        // Normalize transport date to midnight to compare dates only
+                        const transportDate = new Date(fDate);
+                        transportDate.setHours(0, 0, 0, 0);
+                        const transportDateStr = transportDate.toISOString().split('T')[0];
+                        const matches = transportDateStr === dayDateStr;
+                        console.log(`[processedDays] Transport ${f.flightNumber || f.airline} departure: ${fDate.toISOString()}, normalized to: ${transportDateStr}, day: ${dayDateStr}, matches:`, matches);
+                        
+                        return matches;
                     });
+                    
+                    console.log(`[processedDays] Day ${dayDateStr} transport count:`, newDay.transportation.length);
                 }
 
                 // Find matching stays for this day
-                activeTrip.stays?.forEach(stay => {
-                    const checkInTime = parseYMD(stay.checkInDate || '');
-                    const checkOutTime = parseYMD(stay.checkOutDate || '');
+                if (hasStays && activeTrip.stays) {
+                    activeTrip.stays.forEach(stay => {
+                        const checkInTime = parseYMD(stay.checkInDate || '');
+                        const checkOutTime = parseYMD(stay.checkOutDate || '');
 
-                    if (checkInTime && checkOutTime) {
-                        // 1. Staying (Inclusive Check-in, Exclusive Check-out)
-                        if (dayTime >= checkInTime && dayTime < checkOutTime) {
-                            newDay.accommodation = stay;
-                        }
+                        if (checkInTime && checkOutTime) {
+                            // 1. Staying (Inclusive Check-in, Exclusive Check-out)
+                            if (dayTime >= checkInTime && dayTime < checkOutTime) {
+                                newDay.accommodation = stay;
+                            }
 
-                        // 2. Checkout Day (Exact match)
-                        if (dayTime === checkOutTime) {
-                            newDay.accommodationCheckout = stay;
+                            // 2. Checkout Day (Exact match)
+                            if (dayTime === checkOutTime) {
+                                newDay.accommodationCheckout = stay;
+                            }
                         }
-                    }
-                });
+                    });
+                }
 
                 return newDay;
             });
