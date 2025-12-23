@@ -1002,7 +1002,9 @@ export const useTripStore = create<TripState>((set, get) => ({
                     cost: Number(s.cost) || 0,
                     currency: s.currency || 'USD',
                     bookingConfirmation: s.bookingConfirmation || '',
-                    amenities: s.amenities || []
+                    amenities: s.amenities || [],
+                    imageUrl: s.imageUrl,
+                    color: s.color
                 })),
                 transportation: (tripData.transportation || []).map((f: any) => ({
                     id: generateId(),
@@ -1064,7 +1066,8 @@ export const useTripStore = create<TripState>((set, get) => ({
                         location: sanitizeLocation(a.location),
                         bookingRequired: a.bookingRequired || false,
                         notes: a.notes || '',
-                        photos: []
+                        photos: [],
+                        imageUrl: a.imageUrl
                     })),
 
                     accommodation: day.accommodation ? {
@@ -1078,7 +1081,9 @@ export const useTripStore = create<TripState>((set, get) => ({
                         cost: Number(day.accommodation.cost) || 0,
                         currency: day.accommodation.currency || 'USD',
                         bookingConfirmation: day.accommodation.bookingConfirmation || '',
-                        amenities: day.accommodation.amenities || []
+                        amenities: day.accommodation.amenities || [],
+                        imageUrl: day.accommodation.imageUrl,
+                        color: day.accommodation.color
                     } : undefined,
 
                     dining: [], // Reset dining for simplicity or strict map if needed
