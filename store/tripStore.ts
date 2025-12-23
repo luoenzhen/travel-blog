@@ -1020,9 +1020,11 @@ export const useTripStore = create<TripState>((set, get) => ({
                     bookingReference: f.bookingReference || '',
                     cost: Number(f.cost) || 0,
                     currency: f.currency || 'USD',
-                    notes: f.notes || ''
+                    notes: f.notes || '',
+                    isLocked: f.isLocked || false
                 })),
                 collaborators: [],
+                isLocked: tripData.isLocked || false,
                 isPublic: false,
                 status: 'draft',
                 createdAt: now,
@@ -1035,6 +1037,7 @@ export const useTripStore = create<TripState>((set, get) => ({
                     dailyBudget: Number(day.dailyBudget) || 0,
                     notes: day.notes || '',
                     isCompleted: day.isCompleted || false,
+                    isLocked: day.isLocked || false,
 
                     // Strictly reconstruct nested Arrays
                     transportation: (day.transportation || day.flights || []).map((f: any) => ({
@@ -1051,7 +1054,8 @@ export const useTripStore = create<TripState>((set, get) => ({
                         bookingReference: f.bookingReference || '',
                         cost: Number(f.cost) || 0,
                         currency: f.currency || 'USD',
-                        notes: f.notes || ''
+                        notes: f.notes || '',
+                        isLocked: f.isLocked || false
                     })),
 
                     activities: (day.activities || []).map((a: any) => ({
@@ -1067,7 +1071,8 @@ export const useTripStore = create<TripState>((set, get) => ({
                         bookingRequired: a.bookingRequired || false,
                         notes: a.notes || '',
                         photos: [],
-                        imageUrl: a.imageUrl
+                        imageUrl: a.imageUrl,
+                        isLocked: a.isLocked || false
                     })),
 
                     accommodation: day.accommodation ? {
@@ -1083,7 +1088,8 @@ export const useTripStore = create<TripState>((set, get) => ({
                         bookingConfirmation: day.accommodation.bookingConfirmation || '',
                         amenities: day.accommodation.amenities || [],
                         imageUrl: day.accommodation.imageUrl,
-                        color: day.accommodation.color
+                        color: day.accommodation.color,
+                        isLocked: day.accommodation.isLocked || false
                     } : undefined,
 
                     dining: [], // Reset dining for simplicity or strict map if needed
