@@ -40,6 +40,7 @@ export const createTrip = async (tripData: Partial<Trip>): Promise<Trip> => {
 
     // Destructure to remove 'id' if it exists in tripData, ensuring we don't try to write it to Firestore
     // as a field, which likely causes "Missing or insufficient permissions" error.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, userId, ...restOfTripData } = tripData;
 
     const newTripData = {

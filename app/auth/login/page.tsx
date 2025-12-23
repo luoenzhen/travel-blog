@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signInWithEmail, signInWithGoogle, signInWithYahoo, signInWithMicrosoft, resetPassword } from '@/lib/firebase/auth';
+import { signInWithEmail, signInWithGoogle, signInWithYahoo, signInWithMicrosoft, resetPassword, handleAuthRedirect } from '@/lib/firebase/auth';
 import { useAuthStore } from '@/store/authStore';
 
 const loginSchema = z.object({
@@ -34,6 +34,26 @@ export default function LoginPage() {
 
     const emailValue = watch('email');
 
+    // Handle OAuth redirect results (for iOS/Capacitor)
+    useEffect(() => {
+        const checkRedirect = async () => {
+            try {
+                const user = await handleAuthRedirect();
+                if (user) {
+                    setUser(user);
+                    router.push('/');
+                }
+            } catch (error) {
+                // Only show error if it's not a "no redirect" case
+                if ((error as Error).message && !(error as Error).message.includes('no redirect')) {
+                    setAuthError((error as Error).message);
+                    setError((error as Error).message);
+                }
+            }
+        };
+        checkRedirect();
+    }, [router, setUser, setError]);
+
     const onSubmit = async (data: LoginForm) => {
         setLoading(true);
         setAuthError(null);
@@ -53,13 +73,35 @@ export default function LoginPage() {
         setLoading(true);
         setAuthError(null);
         try {
+            console.log('Starting Google sign-in...');
             const user = await signInWithGoogle();
-            setUser(user);
-            router.push('/'); // Redirect to home after social login
+            // For redirect flow (iOS/Capacitor), user will be null and redirect happens
+            // The redirect result will be handled by useEffect
+            if (user) {
+                console.log('Google sign-in successful (popup flow)');
+                setUser(user);
+                router.push('/'); // Redirect to home after social login
+                setLoading(false);
+            } else {
+                // Redirect was initiated - the page will navigate away
+                console.log('Redirect initiated - page will navigate to Google sign-in');
+                // Keep loading state - page will redirect
+                // Don't set loading to false as the redirect will navigate away
+            }
         } catch (error: unknown) {
-            setAuthError((error as Error).message);
-            setError((error as Error).message);
-        } finally {
+            const errorMessage = (error as Error).message;
+            console.error('Google sign-in error:', errorMessage, error);
+            
+            // Provide helpful error messages
+            let displayError = errorMessage;
+            if (errorMessage.includes('popup') || errorMessage.includes('blocked') || errorMessage.includes('timeout')) {
+                displayError = 'Popups are blocked. Please allow popups for this site in your browser settings, or use email/password to sign in.';
+            } else if (!errorMessage) {
+                displayError = 'Failed to sign in with Google. Please try again or use email/password.';
+            }
+            
+            setAuthError(displayError);
+            setError(errorMessage);
             setLoading(false);
         }
     };
@@ -69,12 +111,13 @@ export default function LoginPage() {
         setAuthError(null);
         try {
             const user = await signInWithYahoo();
-            setUser(user);
-            router.push('/');
+            if (user) {
+                setUser(user);
+                router.push('/');
+            }
         } catch (error: unknown) {
             setAuthError((error as Error).message);
             setError((error as Error).message);
-        } finally {
             setLoading(false);
         }
     };
@@ -84,12 +127,13 @@ export default function LoginPage() {
         setAuthError(null);
         try {
             const user = await signInWithMicrosoft();
-            setUser(user);
-            router.push('/');
+            if (user) {
+                setUser(user);
+                router.push('/');
+            }
         } catch (error: unknown) {
             setAuthError((error as Error).message);
             setError((error as Error).message);
-        } finally {
             setLoading(false);
         }
     };
@@ -117,8 +161,22 @@ export default function LoginPage() {
             </div>
 
             {authError && (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
-                    {authError}
+                <div className={`p-4 rounded-lg text-sm ${
+                    authError.includes('iOS Simulator') 
+                        ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                        : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+                }`}>
+                    <div className="flex items-start gap-2">
+                        {authError.includes('iOS Simulator') && (
+                            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        )}
+                        <div className="flex-1">
+                            <p className="font-semibold mb-1">{authError.includes('iOS Simulator') ? 'iOS Simulator Limitation' : 'Sign-in Error'}</p>
+                            <p>{authError}</p>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -128,14 +186,14 @@ export default function LoginPage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex gap-2">
                 <button
                     onClick={handleGoogleSignIn}
                     disabled={loading}
                     title="Continue with Google"
-                    className="flex items-center justify-center p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="flex-1 flex items-center justify-center p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group min-w-0"
                 >
-                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" viewBox="0 0 24 24">
                         <path
                             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                             fill="#4285F4"
@@ -159,9 +217,9 @@ export default function LoginPage() {
                     onClick={handleYahooSignIn}
                     disabled={loading}
                     title="Continue with Yahoo"
-                    className="flex items-center justify-center p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="flex-1 flex items-center justify-center p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group min-w-0"
                 >
-                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none">
+                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none">
                         <path d="M22.5 3L13.8 13.5V21H10.2V13.5L1.5 3H5.7L12 10.7L18.3 3H22.5Z" fill="#6001D2" />
                     </svg>
                 </button>
@@ -170,9 +228,9 @@ export default function LoginPage() {
                     onClick={handleMicrosoftSignIn}
                     disabled={loading}
                     title="Continue with Microsoft"
-                    className="flex items-center justify-center p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className="flex-1 flex items-center justify-center p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group min-w-0"
                 >
-                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform flex-shrink-0" viewBox="0 0 24 24">
                         <rect x="1" y="1" width="10" height="10" fill="#F25022" />
                         <rect x="13" y="1" width="10" height="10" fill="#7FBA00" />
                         <rect x="1" y="13" width="10" height="10" fill="#00A4EF" />

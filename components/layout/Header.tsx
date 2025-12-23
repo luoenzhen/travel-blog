@@ -46,8 +46,8 @@ export default function Header() {
     return (
         <header
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 ${scrolled
-                ? 'py-2 shadow-md'
-                : 'py-2.5 sm:py-3'
+                ? 'pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-2 shadow-md'
+                : 'pt-[calc(env(safe-area-inset-top)+0.625rem)] pb-2.5 sm:pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:pb-3'
                 }`}
         >
             <div className="container mx-auto px-4 flex items-center justify-between">
