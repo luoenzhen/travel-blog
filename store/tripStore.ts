@@ -997,6 +997,9 @@ export const useTripStore = create<TripState>((set, get) => ({
                     type: s.type || 'other',
                     address: s.address || '',
                     location: sanitizeLocation(s.location),
+                    // Preserve date range so processedDays can correctly attach stays to DayCards
+                    checkInDate: s.checkInDate || undefined,
+                    checkOutDate: s.checkOutDate || undefined,
                     checkInTime: s.checkInTime || '',
                     checkOutTime: s.checkOutTime || '',
                     cost: Number(s.cost) || 0,
@@ -1081,6 +1084,9 @@ export const useTripStore = create<TripState>((set, get) => ({
                         type: day.accommodation.type || 'other',
                         address: day.accommodation.address || '',
                         location: sanitizeLocation(day.accommodation.location),
+                        // Carry over dates when external files include them on day-level accommodations
+                        checkInDate: day.accommodation.checkInDate || undefined,
+                        checkOutDate: day.accommodation.checkOutDate || undefined,
                         checkInTime: day.accommodation.checkInTime || '',
                         checkOutTime: day.accommodation.checkOutTime || '',
                         cost: Number(day.accommodation.cost) || 0,

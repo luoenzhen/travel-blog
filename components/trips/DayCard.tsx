@@ -65,17 +65,29 @@ function SortableItem({ id, children, disabled }: { id: string; children: React.
                 <div
                     {...attributes}
                     {...listeners}
-                    className="mt-4 p-1 cursor-grab active:cursor-grabbing text-gray-300 hover:text-primary-500 dark:text-gray-600 dark:hover:text-primary-400 transition-colors rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                    className="mt-4 p-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 flex-shrink-0 touch-none"
                     title="Drag to reorder"
                 >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-12a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
                     </svg>
                 </div>
             )}
-            {disabled && <div className="w-6" />}
+            {disabled && <div className="w-6 flex-shrink-0" />}
 
-            <div className={`flex-1 transition-all duration-200 ${isDragging ? 'scale-[1.02] shadow-xl ring-2 ring-primary-500/20' : ''}`}>
+            {/* Make the entire card draggable, not just the handle */}
+            <div 
+                {...attributes}
+                {...(!disabled ? listeners : {})}
+                className={`flex-1 transition-all duration-200 ${isDragging ? 'scale-[1.02] shadow-xl ring-2 ring-primary-500/20' : ''} ${!disabled ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                onClick={(e) => {
+                    // Prevent card click when dragging
+                    if (isDragging) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                }}
+            >
                 {children}
             </div>
         </div>
@@ -96,14 +108,22 @@ export default function DayCard({
     onDayClick
 }: DayCardProps) {
     const updateDayOrder = useTripStore(state => state.updateDayOrder);
+    // Get the latest day data from the store to ensure we have the most up-to-date customOrder
+    const latestDay = useTripStore(state => {
+        const trip = state.trips.find(t => t.id === day.tripId);
+        return trip?.days?.find(d => d.id === day.id) || day;
+    });
     const [hoveredImage, setHoveredImage] = useState<string | null>(null);
     const [isInsightDismissed, setIsInsightDismissed] = useState(false);
 
-    const dateObj = (day.date as Timestamp | { toDate?: () => Date }).toDate
-        ? (day.date as Timestamp).toDate()
-        : (day.date as unknown as { seconds: number }).seconds
-            ? new Date((day.date as unknown as { seconds: number }).seconds * 1000)
-            : new Date(day.date as unknown as string);
+    // Use latestDay instead of day to get the most recent data
+    const currentDay = latestDay;
+    
+    const dateObj = (currentDay.date as Timestamp | { toDate?: () => Date }).toDate
+        ? (currentDay.date as Timestamp).toDate()
+        : (currentDay.date as unknown as { seconds: number }).seconds
+            ? new Date((currentDay.date as unknown as { seconds: number }).seconds * 1000)
+            : new Date(currentDay.date as unknown as string);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -162,29 +182,29 @@ export default function DayCard({
         return '00:00';
     };
 
-    const isCheckInDay = day.accommodation && day.accommodation.checkInDate === dateObj.toISOString().split('T')[0];
+    const isCheckInDay = currentDay.accommodation && currentDay.accommodation.checkInDate === dateObj.toISOString().split('T')[0];
 
     const rawItems = [
-        ...(day.transportation || []).map(f => ({ ...f, _type: 'transportation', _uniqueId: f.id, _sortTime: to24h(f.departureTime) } as TimelineItem)),
-        ...(day.activities || []).map(a => ({ ...a, _type: 'activity', _uniqueId: a.id, _sortTime: to24h(a.startTime) } as TimelineItem)),
-        ...(day.accommodationCheckout ? [{ ...day.accommodationCheckout, _type: 'stay-checkout', _uniqueId: `checkout-${day.accommodationCheckout.id}`, _sortTime: to24h(day.accommodationCheckout.checkOutTime) } as TimelineItem] : []),
+        ...(currentDay.transportation || []).map(f => ({ ...f, _type: 'transportation', _uniqueId: f.id, _sortTime: to24h(f.departureTime) } as TimelineItem)),
+        ...(currentDay.activities || []).map(a => ({ ...a, _type: 'activity', _uniqueId: a.id, _sortTime: to24h(a.startTime) } as TimelineItem)),
+        ...(currentDay.accommodationCheckout ? [{ ...currentDay.accommodationCheckout, _type: 'stay-checkout', _uniqueId: `checkout-${currentDay.accommodationCheckout.id}`, _sortTime: to24h(currentDay.accommodationCheckout.checkOutTime) } as TimelineItem] : []),
     ];
 
-    if (day.accommodation) {
+    if (currentDay.accommodation) {
         rawItems.push({
-            ...day.accommodation,
+            ...currentDay.accommodation,
             _type: 'stay',
-            _uniqueId: `stay-${day.accommodation.id}`,
-            _sortTime: isCheckInDay ? to24h(day.accommodation.checkInTime) : '15:00'
+            _uniqueId: `stay-${currentDay.accommodation.id}`,
+            _sortTime: isCheckInDay ? to24h(currentDay.accommodation.checkInTime) : '15:00'
         } as TimelineItem);
     }
 
     // Sort items
     let timelineItems: TimelineItem[];
-    if (day.customOrder && day.customOrder.length > 0) {
+    if (currentDay.customOrder && currentDay.customOrder.length > 0) {
         timelineItems = [...rawItems].sort((a, b) => {
-            const indexA = day.customOrder!.indexOf(a._uniqueId);
-            const indexB = day.customOrder!.indexOf(b._uniqueId);
+            const indexA = currentDay.customOrder!.indexOf(a._uniqueId);
+            const indexB = currentDay.customOrder!.indexOf(b._uniqueId);
             if (indexA === -1 && indexB === -1) return a._sortTime.localeCompare(b._sortTime);
             if (indexA === -1) return 1;
             if (indexB === -1) return -1;
@@ -194,19 +214,36 @@ export default function DayCard({
         timelineItems = [...rawItems].sort((a, b) => a._sortTime.localeCompare(b._sortTime));
     }
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
 
-        if (over && active.id !== over.id) {
-            const oldIndex = timelineItems.findIndex(item => item._uniqueId === active.id);
-            const newIndex = timelineItems.findIndex(item => item._uniqueId === over.id);
+        if (!over) {
+            return; // Dropped outside the sortable area
+        }
 
-            const newArray = arrayMove(timelineItems, oldIndex, newIndex);
-            updateDayOrder(day.tripId, day.id, newArray.map(i => i._uniqueId));
+        if (active.id === over.id) {
+            return; // Dropped in the same position
+        }
+
+        const oldIndex = timelineItems.findIndex(item => item._uniqueId === active.id);
+        const newIndex = timelineItems.findIndex(item => item._uniqueId === over.id);
+
+        if (oldIndex === -1 || newIndex === -1) {
+            console.warn('Could not find item indices for drag operation');
+            return;
+        }
+
+        const newArray = arrayMove(timelineItems, oldIndex, newIndex);
+        const newOrder = newArray.map(i => i._uniqueId);
+        
+        try {
+            await updateDayOrder(currentDay.tripId, currentDay.id, newOrder);
+        } catch (error) {
+            console.error('Failed to update day order:', error);
         }
     };
 
-    const effectiveAccommodation = day.accommodation || day.accommodationCheckout;
+    const effectiveAccommodation = currentDay.accommodation || currentDay.accommodationCheckout;
     const customColor = effectiveAccommodation?.color && effectiveAccommodation.color !== '#ffffff' ? effectiveAccommodation.color : undefined;
 
     // Check if this day is "Today"
@@ -273,9 +310,9 @@ export default function DayCard({
     };
 
     const renderWeather = () => {
-        if (!day.weather) return null;
+        if (!currentDay.weather) return null;
 
-        const { temp, icon, condition } = day.weather;
+        const { temp, icon, condition } = currentDay.weather;
 
         return (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-xl border border-gray-100/50 dark:border-gray-600/50 shadow-sm transition-all hover:scale-105 group" title={condition}>
@@ -295,9 +332,9 @@ export default function DayCard({
     };
 
     const renderWeatherInsight = () => {
-        if (isInsightDismissed || !day.weather || !day.weather.icon.includes('rain')) return null;
+        if (isInsightDismissed || !currentDay.weather || !currentDay.weather.icon.includes('rain')) return null;
 
-        const outdoorActivities = day.activities?.filter(a => a.environment === 'outdoor' || (!a.environment && a.type === 'sightseeing')) || [];
+        const outdoorActivities = currentDay.activities?.filter(a => a.environment === 'outdoor' || (!a.environment && a.type === 'sightseeing')) || [];
         if (outdoorActivities.length === 0) return null;
 
         return (
@@ -369,7 +406,7 @@ export default function DayCard({
                     <div className="relative text-left group-hover:opacity-80 transition-opacity flex flex-col gap-0.5">
                         <div className="flex items-center gap-2">
                             <h3 className={`text-lg font-bold transition-colors duration-500 ${hoveredImage ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
-                                Day {day.dayNumber}
+                                Day {currentDay.dayNumber}
                             </h3>
                             {isToday && (
                                 <span className="bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow shadow-amber-500/20 animate-pulse tracking-wider uppercase h-fit">
@@ -419,7 +456,7 @@ export default function DayCard({
                             )}
 
                             {/* Hidden for now: Optimize Route button */}
-                            {false && (day.activities?.length || 0) > 1 && (
+                            {false && (currentDay.activities?.length || 0) > 1 && (
                                 <button
                                     onClick={onOptimize}
                                     className="px-3 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-xs font-bold rounded-lg border border-primary-100 dark:border-primary-800/50 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition-all flex items-center gap-1.5"
@@ -585,7 +622,7 @@ export default function DayCard({
                 </div>
 
                 {/* Photos Section */}
-                {day.photos && day.photos.length > 0 && (
+                {currentDay.photos && currentDay.photos.length > 0 && (
                     <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
                         <div className="flex items-center gap-2 mb-3">
                             <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -594,7 +631,7 @@ export default function DayCard({
                             <h4 className="text-sm font-bold text-gray-900 dark:text-white">Photos</h4>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {day.photos.map((photo, index) => (
+                            {currentDay.photos.map((photo, index) => (
                                 <div key={photo.id || `photo-${index}`} className="group/photo relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
                                     <Image
                                         src={photo.url}
