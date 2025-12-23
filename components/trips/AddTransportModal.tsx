@@ -281,14 +281,14 @@ export default function AddTransportModal({ isOpen, onClose, onSave, onDelete, d
                                     <input {...register('departureAirport')} placeholder="Location name" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
-                                    <input type="date" {...register('departureDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 mb-0.5 sm:mb-1">Date</label>
+                                    <input type="date" {...register('departureDate')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Time</label>
-                                    <input type="time" {...register('departureTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 mb-0.5 sm:mb-1">Time</label>
+                                    <input type="time" {...register('departureTime')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                                 </div>
                             </div>
                         </div>
@@ -308,14 +308,14 @@ export default function AddTransportModal({ isOpen, onClose, onSave, onDelete, d
                                     <input {...register('arrivalAirport')} placeholder="Location name" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
-                                    <input type="date" {...register('arrivalDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 mb-0.5 sm:mb-1">Date</label>
+                                    <input type="date" {...register('arrivalDate')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-500 mb-1">Time</label>
-                                    <input type="time" {...register('arrivalTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                    <label className="block text-[10px] sm:text-xs font-medium text-gray-500 mb-0.5 sm:mb-1">Time</label>
+                                    <input type="time" {...register('arrivalTime')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                                 </div>
                             </div>
                         </div>
@@ -372,18 +372,18 @@ export default function AddTransportModal({ isOpen, onClose, onSave, onDelete, d
                                     {/* Return Departure */}
                                     <div className="space-y-2">
                                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Departure (Return)</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <input type="date" {...register('returnDepartureDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
-                                            <input type="time" {...register('returnDepartureTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                            <input type="date" {...register('returnDepartureDate')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
+                                            <input type="time" {...register('returnDepartureTime')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                                         </div>
                                     </div>
 
                                     {/* Return Arrival */}
                                     <div className="space-y-2">
                                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Arrival (Return)</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <input type="date" {...register('returnArrivalDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
-                                            <input type="time" {...register('returnArrivalTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                            <input type="date" {...register('returnArrivalDate')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
+                                            <input type="time" {...register('returnArrivalTime')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                                         </div>
                                     </div>
                                 </div>

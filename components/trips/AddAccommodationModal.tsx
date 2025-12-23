@@ -302,27 +302,27 @@ export default function AddAccommodationModal({ isOpen, onClose, onSave, onDelet
                     </div>
 
                     <div className="space-y-4 border-t border-gray-100 dark:border-gray-700 pt-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Check-in Date</label>
-                                <input type="date" {...register('checkInDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                <label className="block text-[10px] sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 sm:mb-1">Check-in Date</label>
+                                <input type="date" {...register('checkInDate')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                                 {errors.checkInDate && <p className="text-red-500 text-sm mt-1">{errors.checkInDate.message}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                                <input type="time" {...register('checkInTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                <label className="block text-[10px] sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 sm:mb-1">Time</label>
+                                <input type="time" {...register('checkInTime')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Check-out Date</label>
-                                <input type="date" {...register('checkOutDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                <label className="block text-[10px] sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 sm:mb-1">Check-out Date</label>
+                                <input type="date" {...register('checkOutDate')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                                 {errors.checkOutDate && <p className="text-red-500 text-sm mt-1">{errors.checkOutDate.message}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                                <input type="time" {...register('checkOutTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                <label className="block text-[10px] sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5 sm:mb-1">Time</label>
+                                <input type="time" {...register('checkOutTime')} className="w-full px-1 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-1 focus:ring-primary-500 outline-none text-[11px] sm:text-sm" />
                             </div>
                         </div>
                     </div>
