@@ -77,6 +77,11 @@ const saveToLocalStorage = (trips: Trip[], key: string = LOCAL_STORAGE_KEY) => {
         endDate: t.endDate.toDate().toISOString(),
         createdAt: t.createdAt.toDate().toISOString(),
         updatedAt: t.updatedAt.toDate().toISOString(),
+        transportation: (t.transportation || []).map(f => ({
+            ...f,
+            departureTime: f.departureTime.toDate().toISOString(),
+            arrivalTime: f.arrivalTime.toDate().toISOString(),
+        })),
         days: t.days.map(d => ({
             ...d,
             date: d.date.toDate().toISOString(),
@@ -126,6 +131,11 @@ export const useTripStore = create<TripState>((set, get) => ({
                                 endDate: typeof trip.endDate === 'string' ? Timestamp.fromDate(new Date(trip.endDate)) : trip.endDate,
                                 createdAt: typeof trip.createdAt === 'string' ? Timestamp.fromDate(new Date(trip.createdAt)) : trip.createdAt,
                                 updatedAt: typeof trip.updatedAt === 'string' ? Timestamp.fromDate(new Date(trip.updatedAt)) : trip.updatedAt,
+                                transportation: (trip.transportation || []).map((f: any) => ({
+                                    ...f,
+                                    departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
+                                    arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
+                                })),
                                 days: (trip.days || []).map((d: any) => ({
                                     ...d,
                                     date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
@@ -164,6 +174,11 @@ export const useTripStore = create<TripState>((set, get) => ({
                             endDate: typeof trip.endDate === 'string' ? Timestamp.fromDate(new Date(trip.endDate)) : trip.endDate,
                             createdAt: typeof trip.createdAt === 'string' ? Timestamp.fromDate(new Date(trip.createdAt)) : trip.createdAt,
                             updatedAt: typeof trip.updatedAt === 'string' ? Timestamp.fromDate(new Date(trip.updatedAt)) : trip.updatedAt,
+                            transportation: (trip.transportation || []).map((f: any) => ({
+                                ...f,
+                                departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
+                                arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
+                            })),
                             days: (trip.days || []).map((d: any) => ({
                                 ...d,
                                 date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
@@ -1330,6 +1345,11 @@ export const useTripStore = create<TripState>((set, get) => ({
                                 ...tripData,
                                 startDate,
                                 endDate,
+                                transportation: (trip.transportation || []).map((f: any) => ({
+                                    ...f,
+                                    departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
+                                    arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
+                                })),
                                 days: (trip.days || []).map((d: any) => ({
                                     ...d,
                                     date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
@@ -1355,6 +1375,11 @@ export const useTripStore = create<TripState>((set, get) => ({
                             endDate,
                             createdAt: serverTimestamp(),
                             updatedAt: serverTimestamp(),
+                            transportation: (trip.transportation || []).map((f: any) => ({
+                                ...f,
+                                departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
+                                arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
+                            })),
                             days: (trip.days || []).map((d: any) => ({
                                 ...d,
                                 date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,

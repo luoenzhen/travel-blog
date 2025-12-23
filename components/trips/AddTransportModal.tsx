@@ -270,22 +270,26 @@ export default function AddTransportModal({ isOpen, onClose, onSave, onDelete, d
                     {/* Departure */}
                     <div className="space-y-3">
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-1">Departure</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Code</label>
-                                <input {...register('departureAirportCode')} placeholder="LAX/STN" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none uppercase font-mono" />
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="md:col-span-1">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Code</label>
+                                    <input {...register('departureAirportCode')} placeholder="LAX/STN" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none uppercase font-mono" />
+                                </div>
+                                <div className="md:col-span-3">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">{labels.from}</label>
+                                    <input {...register('departureAirport')} placeholder="Location name" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                </div>
                             </div>
-                            <div className="md:col-span-3">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">{labels.from}</label>
-                                <input {...register('departureAirport')} placeholder="Location name" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
-                                <input type="date" {...register('departureDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Time</label>
-                                <input type="time" {...register('departureTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
+                                    <input type="date" {...register('departureDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Time</label>
+                                    <input type="time" {...register('departureTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -293,22 +297,26 @@ export default function AddTransportModal({ isOpen, onClose, onSave, onDelete, d
                     {/* Arrival */}
                     <div className="space-y-3">
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-1">Arrival</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="md:col-span-1">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Code</label>
-                                <input {...register('arrivalAirportCode')} placeholder="HND/PAR" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none uppercase font-mono" />
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="md:col-span-1">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Code</label>
+                                    <input {...register('arrivalAirportCode')} placeholder="HND/PAR" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none uppercase font-mono" />
+                                </div>
+                                <div className="md:col-span-3">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">{labels.to}</label>
+                                    <input {...register('arrivalAirport')} placeholder="Location name" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                </div>
                             </div>
-                            <div className="md:col-span-3">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">{labels.to}</label>
-                                <input {...register('arrivalAirport')} placeholder="Location name" className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
-                                <input type="date" {...register('arrivalDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Time</label>
-                                <input type="time" {...register('arrivalTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
+                                    <input type="date" {...register('arrivalDate')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Time</label>
+                                    <input type="time" {...register('arrivalTime')} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary-500 outline-none" />
+                                </div>
                             </div>
                         </div>
                     </div>
