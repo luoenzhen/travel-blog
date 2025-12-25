@@ -102,28 +102,58 @@ const migrateTransportationToDays = (trip: Trip): Trip => {
     return trip;
 };
 
+// Helper to convert various date formats to ISO string
+const toISOString = (dateValue: any): string => {
+    if (!dateValue) return new Date().toISOString();
+    
+    // If it's already a string, return it
+    if (typeof dateValue === 'string') return dateValue;
+    
+    // If it's a Timestamp, convert to Date then ISO string
+    if (dateValue && typeof dateValue.toDate === 'function') {
+        return dateValue.toDate().toISOString();
+    }
+    
+    // If it's a Date object, convert to ISO string
+    if (dateValue instanceof Date) {
+        return dateValue.toISOString();
+    }
+    
+    // If it has seconds property (Firestore Timestamp-like object)
+    if (dateValue && typeof dateValue.seconds === 'number') {
+        return new Date(dateValue.seconds * 1000).toISOString();
+    }
+    
+    // Try to create a Date from the value
+    try {
+        return new Date(dateValue).toISOString();
+    } catch {
+        return new Date().toISOString();
+    }
+};
+
 // Helper to save to local storage
 const saveToLocalStorage = (trips: Trip[], key: string = LOCAL_STORAGE_KEY) => {
     if (typeof window === 'undefined') return;
 
     const serializedTrips = trips.map(t => ({
         ...t,
-        startDate: t.startDate.toDate().toISOString(),
-        endDate: t.endDate.toDate().toISOString(),
-        createdAt: t.createdAt.toDate().toISOString(),
-        updatedAt: t.updatedAt.toDate().toISOString(),
+        startDate: toISOString(t.startDate),
+        endDate: toISOString(t.endDate),
+        createdAt: toISOString(t.createdAt),
+        updatedAt: toISOString(t.updatedAt),
         transportation: (t.transportation || []).map(f => ({
             ...f,
-            departureTime: f.departureTime.toDate().toISOString(),
-            arrivalTime: f.arrivalTime.toDate().toISOString(),
+            departureTime: toISOString(f.departureTime),
+            arrivalTime: toISOString(f.arrivalTime),
         })),
         days: t.days.map(d => ({
             ...d,
-            date: d.date.toDate().toISOString(),
+            date: toISOString(d.date),
             transportation: (d.transportation || []).map(f => ({
                 ...f,
-                departureTime: f.departureTime.toDate().toISOString(),
-                arrivalTime: f.arrivalTime.toDate().toISOString(),
+                departureTime: toISOString(f.departureTime),
+                arrivalTime: toISOString(f.arrivalTime),
             })),
             customOrder: d.customOrder || []
         }))
