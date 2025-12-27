@@ -222,17 +222,46 @@ export default function DayCard({
 
     // Sort items
     let timelineItems: TimelineItem[];
+
+    const typeRank = (t: TimelineItem['_type']): number => {
+        // Lower rank = appears earlier when times are equal
+        // Requirement: if stay checkout time equals transport departure time, checkout should be first.
+        switch (t) {
+            case 'stay-checkout':
+                return 0;
+            case 'transportation':
+                return 1;
+            case 'activity':
+                return 2;
+            case 'stay':
+                return 3;
+            default:
+                return 99;
+        }
+    };
+
+    const compareTimelineItems = (a: TimelineItem, b: TimelineItem) => {
+        const byTime = a._sortTime.localeCompare(b._sortTime);
+        if (byTime !== 0) return byTime;
+
+        const byType = typeRank(a._type) - typeRank(b._type);
+        if (byType !== 0) return byType;
+
+        // Deterministic fallback (stable across engines / builds)
+        return a._uniqueId.localeCompare(b._uniqueId);
+    };
+
     if (currentDay.customOrder && currentDay.customOrder.length > 0) {
         timelineItems = [...rawItems].sort((a, b) => {
             const indexA = currentDay.customOrder!.indexOf(a._uniqueId);
             const indexB = currentDay.customOrder!.indexOf(b._uniqueId);
-            if (indexA === -1 && indexB === -1) return a._sortTime.localeCompare(b._sortTime);
+            if (indexA === -1 && indexB === -1) return compareTimelineItems(a, b);
             if (indexA === -1) return 1;
             if (indexB === -1) return -1;
             return indexA - indexB;
         });
     } else {
-        timelineItems = [...rawItems].sort((a, b) => a._sortTime.localeCompare(b._sortTime));
+        timelineItems = [...rawItems].sort(compareTimelineItems);
     }
 
     const handleDragEnd = async (event: DragEndEvent) => {
