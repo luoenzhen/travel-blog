@@ -24,9 +24,9 @@ export default function ConfirmationModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl animate-scale-up overflow-hidden">
-                <div className="p-6 text-center">
+        <div className="modal-backdrop">
+            <div className="modal-panel modal-panel-sm animate-scale-up">
+                <div className="modal-body text-center">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${isDangerous ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-primary-100 text-primary-600'
                         }`}>
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,7 +44,7 @@ export default function ConfirmationModal({
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            className="flex-1 btn-outline"
                         >
                             {cancelText}
                         </button>
@@ -53,10 +53,7 @@ export default function ConfirmationModal({
                                 onConfirm();
                                 onClose();
                             }}
-                            className={`flex-1 px-4 py-2 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all ${isDangerous
-                                    ? 'bg-red-500 hover:bg-red-600'
-                                    : 'bg-primary-500 hover:bg-primary-600'
-                                }`}
+                            className={`flex-1 btn ${isDangerous ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl' : 'btn-primary'}`}
                         >
                             {confirmText}
                         </button>

@@ -52,6 +52,41 @@
     @apply rounded-2xl;
   }
 
+  /* Modal shells */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in;
+  }
+
+  .modal-panel {
+    @apply w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden;
+  }
+
+  .modal-panel-sm {
+    @apply max-w-sm;
+  }
+
+  .modal-panel-md {
+    @apply max-w-md;
+  }
+
+  .modal-body {
+    @apply p-6;
+  }
+
+  /* Pills / badges */
+  .pill {
+    @apply text-xs font-medium px-2 py-1 rounded-lg;
+  }
+
+  .pill-muted {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300;
+  }
+
+  /* Buttons */
+  .btn-outline {
+    @apply px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors;
+  }
+
   .btn {
     @apply px-4 sm:px-6 py-2 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base;
   }
@@ -132,12 +167,28 @@
     text-wrap: balance;
   }
 
+  /* Modal open animation (used by ConfirmationModal and other modals) */
+  .animate-scale-up {
+    animation: scale-up 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
 
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@keyframes scale-up {
+  from {
+    transform: scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
