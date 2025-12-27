@@ -67,7 +67,7 @@ export default function TripsPage() {
                         />
                         <button
                             onClick={() => document.getElementById('import-trip-file')?.click()}
-                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-xl font-semibold shadow-sm transition-all flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 text-sm sm:text-base"
+                            className="btn btn-secondary flex-1 sm:flex-none"
                         >
                             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -76,7 +76,7 @@ export default function TripsPage() {
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold shadow-md transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                            className="btn btn-primary flex-1 sm:flex-none"
                         >
                             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -100,7 +100,7 @@ export default function TripsPage() {
                             </div>
                             <button
                                 onClick={() => useTripStore.getState().fetchTrips()}
-                                className="px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-100 rounded-xl text-xs font-bold transition-colors"
+                                className="btn-danger-soft"
                             >
                                 Retry
                             </button>

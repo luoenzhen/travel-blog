@@ -5,6 +5,7 @@ import { useAuthStore } from './authStore';
 import { Timestamp, serverTimestamp } from 'firebase/firestore';
 import { differenceInDays, addDays, format, parseISO } from 'date-fns';
 import { fetchWeatherForDestination } from '@/lib/weather';
+import { GUEST_TRIPS_STORAGE_KEY, getUserCacheKey, loadTripsFromLocalStorage, saveTripsToLocalStorage } from '@/lib/tripCache';
 
 interface TripState {
     trips: Trip[];
@@ -41,7 +42,7 @@ interface TripState {
     reset: () => void;
 }
 
-const LOCAL_STORAGE_KEY = 'travel_blog_guest_trips';
+const LOCAL_STORAGE_KEY = GUEST_TRIPS_STORAGE_KEY;
 
 // Helper to generate IDs (fallback for crypto.randomUUID)
 const generateId = () => {
@@ -102,73 +103,10 @@ const migrateTransportationToDays = (trip: Trip): Trip => {
     return trip;
 };
 
-// Helper to convert various date formats to ISO string
-const toISOString = (dateValue: any): string => {
-    if (!dateValue) return new Date().toISOString();
-    
-    // If it's already a string, return it
-    if (typeof dateValue === 'string') return dateValue;
-    
-    // If it's a Timestamp, convert to Date then ISO string
-    if (dateValue && typeof dateValue.toDate === 'function') {
-        return dateValue.toDate().toISOString();
-    }
-    
-    // If it's a Date object, convert to ISO string
-    if (dateValue instanceof Date) {
-        return dateValue.toISOString();
-    }
-    
-    // If it has seconds property (Firestore Timestamp-like object)
-    if (dateValue && typeof dateValue.seconds === 'number') {
-        return new Date(dateValue.seconds * 1000).toISOString();
-    }
-    
-    // Try to create a Date from the value
-    try {
-        return new Date(dateValue).toISOString();
-    } catch {
-        return new Date().toISOString();
-    }
-};
-
-// Helper to save to local storage
+// Helper to save to local storage (serialization lives in lib/tripCache)
 const saveToLocalStorage = (trips: Trip[], key: string = LOCAL_STORAGE_KEY) => {
-    if (typeof window === 'undefined') {
-        console.log('[saveToLocalStorage] Skipping - not in browser');
-        return;
-    }
-
-    console.log('[saveToLocalStorage] Saving', trips.length, 'trips to key:', key);
-    
-    const serializedTrips = trips.map(t => ({
-        ...t,
-        startDate: toISOString(t.startDate),
-        endDate: toISOString(t.endDate),
-        createdAt: toISOString(t.createdAt),
-        updatedAt: toISOString(t.updatedAt),
-        transportation: (t.transportation || []).map(f => ({
-            ...f,
-            departureTime: toISOString(f.departureTime),
-            arrivalTime: toISOString(f.arrivalTime),
-        })),
-        days: t.days.map(d => ({
-            ...d,
-            date: toISOString(d.date),
-            transportation: (d.transportation || []).map(f => ({
-                ...f,
-                departureTime: toISOString(f.departureTime),
-                arrivalTime: toISOString(f.arrivalTime),
-            })),
-            customOrder: d.customOrder || []
-        }))
-    }));
-
-    localStorage.setItem(key, JSON.stringify(serializedTrips));
-    console.log('[saveToLocalStorage] Saved successfully. Verify:', localStorage.getItem(key) ? 'Found' : 'NOT FOUND');
+    saveTripsToLocalStorage(trips, key);
 };
-
-const getUserCacheKey = (uid: string) => `travel_blog_user_cache_${uid}`;
 
 export const useTripStore = create<TripState>((set, get) => ({
     trips: [],
@@ -199,33 +137,11 @@ export const useTripStore = create<TripState>((set, get) => ({
 
                     if (typeof window !== 'undefined') {
                         // Try user-specific cache first
-                        const storedTrips = localStorage.getItem(getUserCacheKey(user.id));
+                        const cachedTrips = loadTripsFromLocalStorage(getUserCacheKey(user.id));
 
-                        if (storedTrips) {
-                            const parsedTrips = JSON.parse(storedTrips).map((trip: any) => ({
-                                ...trip,
-                                startDate: typeof trip.startDate === 'string' ? Timestamp.fromDate(new Date(trip.startDate)) : trip.startDate,
-                                endDate: typeof trip.endDate === 'string' ? Timestamp.fromDate(new Date(trip.endDate)) : trip.endDate,
-                                createdAt: typeof trip.createdAt === 'string' ? Timestamp.fromDate(new Date(trip.createdAt)) : trip.createdAt,
-                                updatedAt: typeof trip.updatedAt === 'string' ? Timestamp.fromDate(new Date(trip.updatedAt)) : trip.updatedAt,
-                                transportation: (trip.transportation || []).map((f: any) => ({
-                                    ...f,
-                                    departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                                    arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                                })),
-                                days: (trip.days || []).map((d: any) => ({
-                                    ...d,
-                                    date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
-                                    transportation: (d.transportation || d.flights || []).map((f: any) => ({
-                                        ...f,
-                                        departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                                        arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                                    })),
-                                    accommodation: d.accommodation || undefined
-                                }))
-                            }));
+                        if (cachedTrips && cachedTrips.length > 0) {
                             // Apply migration to distribute trip-level transportation to days
-                            const migratedTrips = parsedTrips.map(migrateTransportationToDays);
+                            const migratedTrips = cachedTrips.map(migrateTransportationToDays);
                             set({
                                 trips: migratedTrips,
                                 loading: false,
@@ -245,49 +161,19 @@ export const useTripStore = create<TripState>((set, get) => ({
                 }
             } else {
                 if (typeof window !== 'undefined') {
-                    console.log('[tripStore.fetchTrips] Guest mode, checking localStorage...');
-                    console.log('[tripStore.fetchTrips] Looking for key:', LOCAL_STORAGE_KEY);
-                    const storedTrips = localStorage.getItem(LOCAL_STORAGE_KEY);
-                    console.log('[tripStore.fetchTrips] Raw localStorage value:', storedTrips ? `${storedTrips.substring(0, 100)}...` : 'null');
-                    if (storedTrips) {
-                        console.log('[tripStore.fetchTrips] Found trips in localStorage');
-                        const parsedTrips = JSON.parse(storedTrips).map((trip: any) => ({
-                            ...trip,
-                            startDate: typeof trip.startDate === 'string' ? Timestamp.fromDate(new Date(trip.startDate)) : trip.startDate,
-                            endDate: typeof trip.endDate === 'string' ? Timestamp.fromDate(new Date(trip.endDate)) : trip.endDate,
-                            createdAt: typeof trip.createdAt === 'string' ? Timestamp.fromDate(new Date(trip.createdAt)) : trip.createdAt,
-                            updatedAt: typeof trip.updatedAt === 'string' ? Timestamp.fromDate(new Date(trip.updatedAt)) : trip.updatedAt,
-                            transportation: (trip.transportation || []).map((f: any) => ({
-                                ...f,
-                                departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                                arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                            })),
-                            days: (trip.days || []).map((d: any) => ({
-                                ...d,
-                                date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
-                                transportation: (d.transportation || d.flights || []).map((f: any) => ({
-                                    ...f,
-                                    departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                                    arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                                })),
-                                accommodation: d.accommodation || undefined
-                            }))
-                        }));
+                    const cachedTrips = loadTripsFromLocalStorage(LOCAL_STORAGE_KEY);
+                    if (cachedTrips && cachedTrips.length > 0) {
                         // Apply migration to distribute trip-level transportation to days
-                        const migratedTrips = parsedTrips.map(migrateTransportationToDays);
-                        console.log('[tripStore.fetchTrips] Parsed from localStorage:', migratedTrips.length, 'trips');
+                        const migratedTrips = cachedTrips.map(migrateTransportationToDays);
                         set({ trips: migratedTrips, loading: false });
                     } else {
-                        console.log('[tripStore.fetchTrips] No trips in localStorage');
                         set({ trips: [], loading: false });
                     }
                 } else {
-                    console.log('[tripStore.fetchTrips] Not in browser (SSR)');
                     set({ trips: [], loading: false });
                 }
             }
         } catch (error: any) {
-            console.error('[tripStore.fetchTrips] Error:', error);
             set({ error: error.message, loading: false });
         }
     },
@@ -1458,13 +1344,10 @@ export const useTripStore = create<TripState>((set, get) => ({
         const user = useAuthStore.getState().user;
         if (!user) return;
 
-        const storedTrips = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (!storedTrips) return;
+        const guestTrips = loadTripsFromLocalStorage(LOCAL_STORAGE_KEY);
+        if (!guestTrips || guestTrips.length === 0) return;
 
         try {
-            const guestTrips = JSON.parse(storedTrips);
-            if (guestTrips.length === 0) return;
-
             set({ loading: true });
 
             // First, try to fetch existing trips from Firestore
@@ -1486,9 +1369,9 @@ export const useTripStore = create<TripState>((set, get) => ({
                     // Remove ID so Firebase generates a new one
                     const { id, ...tripData } = trip;
 
-                    // Convert string dates back to Timestamps if needed
-                    const startDate = typeof trip.startDate === 'string' ? Timestamp.fromDate(new Date(trip.startDate)) : trip.startDate;
-                    const endDate = typeof trip.endDate === 'string' ? Timestamp.fromDate(new Date(trip.endDate)) : trip.endDate;
+                    // loadTripsFromLocalStorage() already normalizes dates to Timestamp
+                    const startDate = trip.startDate instanceof Timestamp ? trip.startDate : Timestamp.fromDate(new Date(trip.startDate as any));
+                    const endDate = trip.endDate instanceof Timestamp ? trip.endDate : Timestamp.fromDate(new Date(trip.endDate as any));
 
                     // Check if a similar trip already exists in Firestore
                     // Match by title, destination, and date range
@@ -1516,20 +1399,8 @@ export const useTripStore = create<TripState>((set, get) => ({
                                 ...tripData,
                                 startDate,
                                 endDate,
-                                transportation: (trip.transportation || []).map((f: any) => ({
-                                    ...f,
-                                    departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                                    arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                                })),
-                                days: (trip.days || []).map((d: any) => ({
-                                    ...d,
-                                    date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
-                                    transportation: (d.transportation || []).map((f: any) => ({
-                                        ...f,
-                                        departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                                        arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                                    }))
-                                }))
+                                transportation: trip.transportation || [],
+                                days: trip.days || []
                             };
 
                             await updateTrip(existingTrip.id, formattedTrip);
@@ -1544,22 +1415,8 @@ export const useTripStore = create<TripState>((set, get) => ({
                             ...tripData,
                             startDate,
                             endDate,
-                            createdAt: serverTimestamp(),
-                            updatedAt: serverTimestamp(),
-                            transportation: (trip.transportation || []).map((f: any) => ({
-                                ...f,
-                                departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                                arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                            })),
-                            days: (trip.days || []).map((d: any) => ({
-                                ...d,
-                                date: typeof d.date === 'string' ? Timestamp.fromDate(new Date(d.date)) : d.date,
-                                transportation: (d.transportation || []).map((f: any) => ({
-                                    ...f,
-                                    departureTime: typeof f.departureTime === 'string' ? Timestamp.fromDate(new Date(f.departureTime)) : f.departureTime,
-                                    arrivalTime: typeof f.arrivalTime === 'string' ? Timestamp.fromDate(new Date(f.arrivalTime)) : f.arrivalTime,
-                                }))
-                            }))
+                            transportation: trip.transportation || [],
+                            days: trip.days || []
                         };
 
                         await createTrip(formattedTrip);
@@ -1575,7 +1432,7 @@ export const useTripStore = create<TripState>((set, get) => ({
             // Only clear successfully synced trips from local storage
             if (failedTrips.length > 0) {
                 console.warn(`${failedTrips.length} trip(s) failed to sync. Keeping them in localStorage for retry.`);
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(failedTrips));
+                saveToLocalStorage(failedTrips, LOCAL_STORAGE_KEY);
                 set({
                     error: `Synced ${syncedTripIds.length} trip(s). ${failedTrips.length} trip(s) will retry when online.`,
                     loading: false

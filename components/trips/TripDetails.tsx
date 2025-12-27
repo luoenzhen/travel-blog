@@ -1095,8 +1095,8 @@ export default function TripDetailsPage() {
 
     if (isInitializing || loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+            <div className="app-loading-screen">
+                <div className="app-spinner app-spinner-lg"></div>
             </div>
         );
     }
@@ -1122,8 +1122,8 @@ export default function TripDetailsPage() {
     // TypeScript null check - this should never happen due to the check above, but TypeScript needs it
     if (!activeTrip) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+            <div className="app-loading-screen">
+                <div className="app-spinner app-spinner-lg"></div>
             </div>
         );
     }
