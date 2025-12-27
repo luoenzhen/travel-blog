@@ -87,7 +87,7 @@ export default function TransportCard({ transport, onClick, onLocationClick }: T
 
     return (
         <div className="w-full pb-2 sm:pb-4 group">
-            <div className={`bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 border border-${color}-100 dark:border-${color}-900/30 shadow-sm transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700' : ''}`} onClick={onClick}>
+            <div className={`card card-p-sm border border-${color}-100 dark:border-${color}-900/30 ${onClick ? 'card-interactive hover:shadow-md hover:border-gray-200 dark:hover:border-gray-700' : ''}`} onClick={onClick}>
                 <div className="flex flex-row justify-between items-center gap-1 sm:mb-2 mb-1">
                     <div className="flex items-center gap-1.5">
                         <span className="font-bold text-gray-900 dark:text-gray-100 uppercase text-[9px] sm:text-sm">{transport.airline}</span>

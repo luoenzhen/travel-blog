@@ -28,7 +28,7 @@ export default function TripCard({ trip, onClick, onToggleLock, onDelete }: Trip
     return (
         <div
             onClick={onClick}
-            className="group relative bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all cursor-pointer border border-gray-100 dark:border-gray-700 hover:scale-[1.02]"
+            className="group relative card card-rounded-2xl card-p-lg card-border card-elevated card-interactive card-hover-scale"
         >
             <div className="absolute bottom-4 right-4 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
                 <button
