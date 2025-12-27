@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import Image from 'next/image';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTripStore } from '@/store/tripStore';
 import { useAuthStore } from '@/store/authStore';
 import { format, differenceInDays, addDays } from 'date-fns';
@@ -91,10 +91,9 @@ function DroppableDay({ children, dayId }: { children: React.ReactNode; dayId: s
 
 export default function TripDetailsPage() {
     const params = useParams();
-    const searchParams = useSearchParams();
     const router = useRouter();
     const { getTrip, activeTrip, initializeDays, addActivity, addAccommodation, loading, updateTripDetails, updateWeather, syncGuestTrips } = useTripStore();
-    const { user, signOut } = useAuthStore();
+    const { user, signOut, loading: authLoading } = useAuthStore();
     const [isInitializing, setIsInitializing] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
     const [searchFailed, setSearchFailed] = useState(false);
@@ -272,7 +271,27 @@ export default function TripDetailsPage() {
     }, [activeTab]);
 
 
-    const tripId = (params.id as string) || searchParams.get('id') || '';
+    // Get trip ID from URL - handle both dynamic routes and query params
+    const [tripId, setTripId] = useState<string>('');
+    
+    // Extract trip ID on mount and when params change
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const idFromQuery = urlParams.get('id');
+            const idFromParams = params.id as string;
+            const id = idFromParams || idFromQuery || '';
+            console.log('[TripDetails] Extracted trip ID from URL:', id);
+            console.log('[TripDetails] - From params.id:', idFromParams);
+            console.log('[TripDetails] - From query string:', idFromQuery);
+            console.log('[TripDetails] - window.location.search:', window.location.search);
+            if (id) {
+                setTripId(id);
+            }
+        }
+    }, [params.id]);
+    
+    console.log('[TripDetails] Current tripId:', tripId);
 
     // ... (processedDays memo remains the same) ...
     const processedDays = useMemo(() => {
@@ -385,28 +404,45 @@ export default function TripDetailsPage() {
 
     // Load Trip
     useEffect(() => {
+        if (authLoading) {
+            // Wait until Firebase auth state is known; otherwise we may incorrectly run as "Guest"
+            // and read the wrong cache / skip Firestore.
+            return;
+        }
         const loadTrip = async () => {
+            console.log('[TripDetails] Loading trip with ID:', tripId);
             try {
                 const trip = await getTrip(tripId);
+                console.log('[TripDetails] Trip loaded:', trip ? 'Found' : 'Not found');
                 if (trip) {
+                    console.log('[TripDetails] Initializing days for trip:', tripId);
                     await initializeDays(tripId);
                     // Fetch weather asynchronously so it doesn't block UI
                     updateWeather(tripId);
                 } else {
+                    console.log('[TripDetails] Trip not found, setting searchFailed to true');
                     setSearchFailed(true);
                 }
             } catch (error) {
-                console.error("Error loading trip:", error);
+                console.error("[TripDetails] Error loading trip:", error);
                 setSearchFailed(true);
             } finally {
+                console.log('[TripDetails] Finished loading, setting isInitializing to false');
                 setIsInitializing(false);
             }
         };
 
         if (tripId) {
+            console.log('[TripDetails] tripId changed, loading trip:', tripId);
+            setIsInitializing(true);
+            setSearchFailed(false);
             loadTrip();
+        } else {
+            console.log('[TripDetails] No tripId provided');
+            setIsInitializing(false);
+            setSearchFailed(true);
         }
-    }, [tripId, getTrip, initializeDays, updateWeather]);
+    }, [tripId, authLoading, getTrip, initializeDays, updateWeather]);
 
     // Repair Days Side Effect
     // If activeTrip is loaded but has missing days (due to legacy bugs or edits), fix them.
@@ -1065,7 +1101,8 @@ export default function TripDetailsPage() {
         );
     }
 
-    if (searchFailed || !activeTrip) {
+    // Only show "Trip Not Found" if initialization is complete AND trip is still not found
+    if (!isInitializing && !loading && (searchFailed || !activeTrip)) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
                 <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl text-center max-w-md">
@@ -1078,6 +1115,15 @@ export default function TripDetailsPage() {
                         Back to Dashboard
                     </button>
                 </div>
+            </div>
+        );
+    }
+
+    // TypeScript null check - this should never happen due to the check above, but TypeScript needs it
+    if (!activeTrip) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
             </div>
         );
     }

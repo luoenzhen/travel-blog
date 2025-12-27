@@ -65,8 +65,14 @@ function SortableItem({ id, children, disabled }: { id: string; children: React.
                 <div
                     {...attributes}
                     {...listeners}
-                    className="mt-4 p-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 flex-shrink-0 touch-none"
+                    className="mt-4 p-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 flex-shrink-0 touch-none select-none"
                     title="Drag to reorder"
+                    style={{
+                        touchAction: 'none',
+                        WebkitTouchCallout: 'none',
+                        WebkitUserSelect: 'none',
+                        userSelect: 'none',
+                    }}
                 >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-12a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
@@ -80,15 +86,30 @@ function SortableItem({ id, children, disabled }: { id: string; children: React.
                 {...attributes}
                 {...(!disabled ? listeners : {})}
                 className={`flex-1 transition-all duration-200 ${isDragging ? 'scale-[1.02] shadow-xl ring-2 ring-primary-500/20' : ''} ${!disabled ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                style={{
+                    // Prevent text selection during drag
+                    userSelect: isDragging ? 'none' : 'auto',
+                    WebkitUserSelect: isDragging ? 'none' : 'auto',
+                }}
                 onClick={(e) => {
-                    // Prevent card click when dragging
+                    // Prevent clicks during drag
                     if (isDragging) {
-                        e.stopPropagation();
                         e.preventDefault();
+                        e.stopPropagation();
                     }
                 }}
             >
-                {children}
+                <div 
+                    onClick={(e) => {
+                        // Prevent child onClick from firing if we're dragging or about to drag
+                        if (isDragging) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
+                    }}
+                >
+                    {children}
+                </div>
             </div>
         </div>
     );
@@ -128,13 +149,13 @@ export default function DayCard({
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 3, // Very small distance - easier to start dragging
             },
         }),
         useSensor(TouchSensor, {
             activationConstraint: {
-                delay: 0,
-                tolerance: 10,
+                delay: 150, // Delay to distinguish from taps
+                tolerance: 3, // Small tolerance
             },
         }),
         useSensor(KeyboardSensor, {

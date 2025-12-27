@@ -9,18 +9,17 @@ import { useEffect, useState } from 'react';
 import { useTripStore } from '@/store/tripStore';
 
 export default function Header() {
-    const { user, signOut, initialize } = useAuthStore();
+    const { user, signOut } = useAuthStore();
     const { syncGuestTrips, loading: tripsLoading } = useTripStore();
     const pathname = usePathname();
     const [scrolled, setScrolled] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
 
     useEffect(() => {
-        initialize();
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [initialize]);
+    }, []);
 
     // Automatic sync when user is detected
     useEffect(() => {

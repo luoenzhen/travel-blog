@@ -134,8 +134,13 @@ const toISOString = (dateValue: any): string => {
 
 // Helper to save to local storage
 const saveToLocalStorage = (trips: Trip[], key: string = LOCAL_STORAGE_KEY) => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+        console.log('[saveToLocalStorage] Skipping - not in browser');
+        return;
+    }
 
+    console.log('[saveToLocalStorage] Saving', trips.length, 'trips to key:', key);
+    
     const serializedTrips = trips.map(t => ({
         ...t,
         startDate: toISOString(t.startDate),
@@ -160,6 +165,7 @@ const saveToLocalStorage = (trips: Trip[], key: string = LOCAL_STORAGE_KEY) => {
     }));
 
     localStorage.setItem(key, JSON.stringify(serializedTrips));
+    console.log('[saveToLocalStorage] Saved successfully. Verify:', localStorage.getItem(key) ? 'Found' : 'NOT FOUND');
 };
 
 const getUserCacheKey = (uid: string) => `travel_blog_user_cache_${uid}`;
@@ -171,16 +177,20 @@ export const useTripStore = create<TripState>((set, get) => ({
     error: null,
 
     fetchTrips: async () => {
+        console.log('[tripStore.fetchTrips] Starting fetch...');
         set({ loading: true, error: null });
         const user = useAuthStore.getState().user;
+        console.log('[tripStore.fetchTrips] User:', user ? 'Logged in' : 'Guest');
 
         try {
             if (user) {
                 try {
                     const fetchedTrips = await getUserTrips();
+                    console.log('[tripStore.fetchTrips] Fetched from Firestore:', fetchedTrips.length, 'trips');
                     // Apply migration to distribute trip-level transportation to days
                     const migratedTrips = fetchedTrips.map(migrateTransportationToDays);
                     set({ trips: migratedTrips, loading: false });
+                    console.log('[tripStore.fetchTrips] Set trips in store:', migratedTrips.length);
                     // Cache successful fetch for offline use
                     saveToLocalStorage(migratedTrips, getUserCacheKey(user.id));
                 } catch (firestoreError: any) {
@@ -235,8 +245,12 @@ export const useTripStore = create<TripState>((set, get) => ({
                 }
             } else {
                 if (typeof window !== 'undefined') {
+                    console.log('[tripStore.fetchTrips] Guest mode, checking localStorage...');
+                    console.log('[tripStore.fetchTrips] Looking for key:', LOCAL_STORAGE_KEY);
                     const storedTrips = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    console.log('[tripStore.fetchTrips] Raw localStorage value:', storedTrips ? `${storedTrips.substring(0, 100)}...` : 'null');
                     if (storedTrips) {
+                        console.log('[tripStore.fetchTrips] Found trips in localStorage');
                         const parsedTrips = JSON.parse(storedTrips).map((trip: any) => ({
                             ...trip,
                             startDate: typeof trip.startDate === 'string' ? Timestamp.fromDate(new Date(trip.startDate)) : trip.startDate,
@@ -261,32 +275,46 @@ export const useTripStore = create<TripState>((set, get) => ({
                         }));
                         // Apply migration to distribute trip-level transportation to days
                         const migratedTrips = parsedTrips.map(migrateTransportationToDays);
+                        console.log('[tripStore.fetchTrips] Parsed from localStorage:', migratedTrips.length, 'trips');
                         set({ trips: migratedTrips, loading: false });
                     } else {
+                        console.log('[tripStore.fetchTrips] No trips in localStorage');
                         set({ trips: [], loading: false });
                     }
                 } else {
+                    console.log('[tripStore.fetchTrips] Not in browser (SSR)');
                     set({ trips: [], loading: false });
                 }
             }
         } catch (error: any) {
+            console.error('[tripStore.fetchTrips] Error:', error);
             set({ error: error.message, loading: false });
         }
     },
 
     getTrip: async (id: string) => {
+        console.log('[tripStore.getTrip] Looking for trip with ID:', id);
+        console.log('[tripStore.getTrip] Current trips in store:', get().trips.length);
+        
         const existingTrip = get().trips.find(t => t.id === id);
         if (existingTrip) {
+            console.log('[tripStore.getTrip] Found trip in store, setting as active');
             get().setActiveTrip(id);
             return existingTrip;
         }
 
+        console.log('[tripStore.getTrip] Trip not in store, fetching all trips...');
         await get().fetchTrips();
+        console.log('[tripStore.getTrip] After fetchTrips, trips in store:', get().trips.length);
+        
         const fetchedTrip = get().trips.find(t => t.id === id);
         if (fetchedTrip) {
+            console.log('[tripStore.getTrip] Found trip after fetch, setting as active');
             get().setActiveTrip(id);
             return fetchedTrip;
         }
+        
+        console.log('[tripStore.getTrip] Trip not found after fetch');
         return null;
     },
 
@@ -359,7 +387,9 @@ export const useTripStore = create<TripState>((set, get) => ({
     },
 
     setActiveTrip: (tripId) => {
+        console.log('[tripStore.setActiveTrip] Setting active trip:', tripId);
         const trip = get().trips.find((t) => t.id === tripId);
+        console.log('[tripStore.setActiveTrip] Found trip:', trip ? 'Yes' : 'No');
         set({ activeTrip: trip || null });
     },
 
@@ -1255,10 +1285,17 @@ export const useTripStore = create<TripState>((set, get) => ({
             if (user) {
                 const sanitizedTrip = removeUndefined(importedTrip);
                 const newTrip = await createTrip(sanitizedTrip);
-                set((state) => ({
-                    trips: [newTrip, ...state.trips],
-                    loading: false
-                }));
+                set((state) => {
+                    const updatedTrips = [newTrip, ...state.trips];
+                    // Cache for offline/refresh support even for logged-in users
+                    if (typeof window !== 'undefined') {
+                        saveToLocalStorage(updatedTrips, getUserCacheKey(user.id));
+                    }
+                    return {
+                        trips: updatedTrips,
+                        loading: false,
+                    };
+                });
             } else {
                 if (typeof window !== 'undefined') {
                     const updatedTrips = [importedTrip, ...get().trips];
