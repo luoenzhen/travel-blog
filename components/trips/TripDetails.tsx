@@ -23,6 +23,7 @@ import { Share } from '@capacitor/share';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 import TripCalendar from './TripCalendar';
+import CalendarExportModal from './CalendarExportModal';
 const TripMap = dynamic(() => import('./TripMap'), { ssr: false });
 import {
     DndContext,
@@ -121,6 +122,7 @@ export default function TripDetailsPage() {
     const [isEditTripModalOpen, setIsEditTripModalOpen] = useState(false);
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
     const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+    const [isCalendarExportModalOpen, setIsCalendarExportModalOpen] = useState(false);
     const [activeDayId, setActiveDayId] = useState<string | null>(null);
     const [editingAccommodation, setEditingAccommodation] = useState<AccommodationDetails | undefined>(undefined);
     const [editingTransport, setEditingTransport] = useState<TransportationDetails | undefined>(undefined);
@@ -273,7 +275,7 @@ export default function TripDetailsPage() {
 
     // Get trip ID from URL - handle both dynamic routes and query params
     const [tripId, setTripId] = useState<string>('');
-    
+
     // Extract trip ID on mount and when params change
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -290,7 +292,7 @@ export default function TripDetailsPage() {
             }
         }
     }, [params.id]);
-    
+
     console.log('[TripDetails] Current tripId:', tripId);
 
     // ... (processedDays memo remains the same) ...
@@ -300,13 +302,13 @@ export default function TripDetailsPage() {
         // If no global stays AND no transportation, just return days as is (support legacy or empty)
         const hasStays = activeTrip.stays && activeTrip.stays.length > 0;
         const hasTransportation = activeTrip.transportation && activeTrip.transportation.length > 0;
-        
+
         console.log('[processedDays] hasStays:', hasStays, 'hasTransportation:', hasTransportation);
         if (hasTransportation && activeTrip.transportation) {
             console.log('[processedDays] Transportation count:', activeTrip.transportation.length);
             console.log('[processedDays] Transportation data:', activeTrip.transportation);
         }
-        
+
         if (!hasStays && !hasTransportation) return activeTrip.days;
 
         // Helper to parse "YYYY-MM-DD" safely
@@ -341,7 +343,7 @@ export default function TripDetailsPage() {
                     // Use ISO date string for comparison (YYYY-MM-DD) to avoid timezone issues
                     const dayDateStr = dayDate.toISOString().split('T')[0];
                     console.log(`[processedDays] Processing day: ${dayDateStr}`);
-                    
+
                     newDay.transportation = activeTrip.transportation.filter(f => {
                         // departureTime is timestamp
                         let fDate: Date;
@@ -358,17 +360,17 @@ export default function TripDetailsPage() {
                             console.log('[processedDays] Invalid date for transport:', f);
                             return false;
                         }
-                        
+
                         // Normalize transport date to midnight to compare dates only
                         const transportDate = new Date(fDate);
                         transportDate.setHours(0, 0, 0, 0);
                         const transportDateStr = transportDate.toISOString().split('T')[0];
                         const matches = transportDateStr === dayDateStr;
                         console.log(`[processedDays] Transport ${f.flightNumber || f.airline} departure: ${fDate.toISOString()}, normalized to: ${transportDateStr}, day: ${dayDateStr}, matches:`, matches);
-                        
+
                         return matches;
                     });
-                    
+
                     console.log(`[processedDays] Day ${dayDateStr} transport count:`, newDay.transportation.length);
                 }
 
@@ -1383,6 +1385,17 @@ export default function TripDetailsPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
                                 </button>
+
+                                {/* Calendar Export Button */}
+                                <button
+                                    onClick={() => setIsCalendarExportModalOpen(true)}
+                                    className="p-1.5 sm:p-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                                    title="Export to Calendar"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
@@ -1732,6 +1745,7 @@ export default function TripDetailsPage() {
                 {activeTrip && <CreateTripModal isOpen={isEditTripModalOpen} onClose={() => setIsEditTripModalOpen(false)} tripToEdit={activeTrip} />}
                 {activeTrip && <BudgetModal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} trip={activeTrip} onSave={handleSaveBudget} />}
                 <AddPhotoModal isOpen={isPhotoModalOpen} onClose={() => setIsPhotoModalOpen(false)} onSave={handleSavePhoto} dayDate={activeDayId ? getDayDateString(activeDayId) : ''} dayId={activeDayId || ''} />
+                {activeTrip && <CalendarExportModal isOpen={isCalendarExportModalOpen} onClose={() => setIsCalendarExportModalOpen(false)} trip={activeTrip} />}
 
                 {/* Error Toast */}
                 {errorMessage && (
