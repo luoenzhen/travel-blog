@@ -251,8 +251,31 @@ Change fonts in `app/layout.tsx`.
 
 ### Deploy to Netlify
 1. Build the project: `npm run build`
-2. Deploy the `.next` folder to Netlify
+2. Deploy the `out` folder to Netlify
 3. Add environment variables in Netlify dashboard
+
+## 📲 iOS Sideloading with AltStore
+
+This app supports automated iOS `.ipa` generation via GitHub Actions, designed specifically for sideloading with **AltStore** (no paid Apple Developer account needed).
+
+### Option 1: Direct IPA Sideloading with AltStore
+1. Go to the GitHub repository: `https://github.com/luoenzhen/travel-blog/actions`
+2. Download the `TravelBlog-IPA` artifact from the latest successful build (or from **Releases**).
+3. On your iOS device (or computer with AltServer):
+   - **AltStore on iOS**: Open AltStore -> **My Apps** -> tap **+** -> select `TravelBlog.ipa`.
+   - **AltServer on PC/Mac**: Hold Option/Shift -> Click AltServer -> "Install IPA..." -> select `TravelBlog.ipa`.
+4. AltStore signs the app using your free Apple ID and installs it!
+
+### Option 2: Add AltStore Community Source Feed
+You can add this repository as a custom Source in AltStore for automatic updates:
+1. Open **AltStore** on your iOS device.
+2. Go to the **Sources** tab and tap **+** (or Edit -> Add).
+3. Enter the Source URL:
+   ```text
+   https://raw.githubusercontent.com/luoenzhen/travel-blog/master/altstore.json
+   ```
+4. Travel Blog will appear in your AltStore browser. Tap **FREE** / **INSTALL** to install and get updates with a single tap.
+
 
 ## 🔐 Environment Variables
 
