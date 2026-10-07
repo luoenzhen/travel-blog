@@ -559,14 +559,21 @@ export const useTripStore = create<TripState>((set, get) => ({
         }));
 
         const user = useAuthStore.getState().user;
+        const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
         if (user) {
-            await updateTrip(trip.id, {
-                transportation: updatedTransportation,
-                days: updatedDays,
-                budget: updatedTrip.budget
-            });
+            if (typeof window !== 'undefined') {
+                saveToLocalStorage(updatedTrips, getUserCacheKey(user.id));
+            }
+            try {
+                await updateTrip(trip.id, {
+                    transportation: updatedTransportation,
+                    days: updatedDays,
+                    budget: updatedTrip.budget
+                });
+            } catch (error) {
+                console.warn('Failed to update trip in Firestore (offline mode?):', error);
+            }
         } else {
-            const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
             saveToLocalStorage(updatedTrips);
         }
     },
@@ -613,8 +620,9 @@ export const useTripStore = create<TripState>((set, get) => ({
             };
         });
 
-        // 3. Update Budget
-        const newSpending = { ...trip.budget.actualSpending };
+        // 3. Update Budget safely
+        const currentSpending = trip.budget?.actualSpending || { flights: 0, accommodation: 0, food: 0, activities: 0, shopping: 0, transportation: 0, other: 0 };
+        const newSpending = { ...currentSpending };
         if (transport.type === 'flight') {
             newSpending.flights = (newSpending.flights || 0) + costDiff;
         } else {
@@ -625,8 +633,13 @@ export const useTripStore = create<TripState>((set, get) => ({
             ...trip,
             transportation: updatedTransportation,
             days: updatedDays,
-            budget: {
+            budget: trip.budget ? {
                 ...trip.budget,
+                actualSpending: newSpending
+            } : {
+                totalBudget: 0,
+                currency: 'USD',
+                categories: { flights: 0, accommodation: 0, food: 0, activities: 0, shopping: 0, transportation: 0, other: 0 },
                 actualSpending: newSpending
             },
             updatedAt: Timestamp.now()
@@ -639,14 +652,21 @@ export const useTripStore = create<TripState>((set, get) => ({
         }));
 
         const user = useAuthStore.getState().user;
+        const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
         if (user) {
-            await updateTrip(trip.id, {
-                transportation: updatedTransportation,
-                days: updatedDays,
-                budget: updatedTrip.budget
-            });
+            if (typeof window !== 'undefined') {
+                saveToLocalStorage(updatedTrips, getUserCacheKey(user.id));
+            }
+            try {
+                await updateTrip(trip.id, {
+                    transportation: updatedTransportation,
+                    days: updatedDays,
+                    budget: updatedTrip.budget
+                });
+            } catch (error) {
+                console.warn('Failed to update trip in Firestore (offline mode?):', error);
+            }
         } else {
-            const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
             saveToLocalStorage(updatedTrips);
         }
     },
@@ -655,21 +675,25 @@ export const useTripStore = create<TripState>((set, get) => ({
         const trip = get().trips.find(t => t.id === tripId);
         if (!trip) return;
 
-        // 1. Update list
+        // 1. Update central list
         const updatedTransportation = (trip.transportation || []).filter(f => f.id !== transportId);
 
-        // Cost removal
-        const transportToRemove = (trip.transportation || []).find(f => f.id === transportId);
+        // Find transport to remove (check both trip level and day level)
+        const transportToRemove = 
+            (trip.transportation || []).find(f => f.id === transportId) ||
+            (trip.days || []).flatMap(d => d.transportation || []).find(f => f.id === transportId);
         const costToRemove = transportToRemove?.cost || 0;
 
-        // 2. Remove from all days
-        const updatedDays = trip.days.map(day => ({
+        // 2. Remove from all days and clean customOrder
+        const updatedDays = (trip.days || []).map(day => ({
             ...day,
-            transportation: (day.transportation || []).filter(t => t.id !== transportId)
+            transportation: (day.transportation || []).filter(t => t.id !== transportId),
+            customOrder: day.customOrder?.filter(id => id !== transportId)
         }));
 
-        // 3. Update Budget
-        const newSpending = { ...trip.budget.actualSpending };
+        // 3. Update Budget safely
+        const currentSpending = trip.budget?.actualSpending || { flights: 0, accommodation: 0, food: 0, activities: 0, shopping: 0, transportation: 0, other: 0 };
+        const newSpending = { ...currentSpending };
         if (transportToRemove?.type === 'flight') {
             newSpending.flights = Math.max(0, (newSpending.flights || 0) - costToRemove);
         } else {
@@ -680,8 +704,13 @@ export const useTripStore = create<TripState>((set, get) => ({
             ...trip,
             transportation: updatedTransportation,
             days: updatedDays,
-            budget: {
+            budget: trip.budget ? {
                 ...trip.budget,
+                actualSpending: newSpending
+            } : {
+                totalBudget: 0,
+                currency: 'USD',
+                categories: { flights: 0, accommodation: 0, food: 0, activities: 0, shopping: 0, transportation: 0, other: 0 },
                 actualSpending: newSpending
             },
             updatedAt: Timestamp.now()
@@ -694,14 +723,21 @@ export const useTripStore = create<TripState>((set, get) => ({
         }));
 
         const user = useAuthStore.getState().user;
+        const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
         if (user) {
-            await updateTrip(trip.id, {
-                transportation: updatedTransportation,
-                days: updatedDays,
-                budget: updatedTrip.budget
-            });
+            if (typeof window !== 'undefined') {
+                saveToLocalStorage(updatedTrips, getUserCacheKey(user.id));
+            }
+            try {
+                await updateTrip(trip.id, {
+                    transportation: updatedTransportation,
+                    days: updatedDays,
+                    budget: updatedTrip.budget
+                });
+            } catch (error) {
+                console.warn('Failed to update trip in Firestore (offline mode?):', error);
+            }
         } else {
-            const updatedTrips = get().trips.map(t => t.id === tripId ? updatedTrip : t);
             saveToLocalStorage(updatedTrips);
         }
     },

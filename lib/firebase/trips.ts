@@ -111,13 +111,31 @@ export const getTripById = async (tripId: string): Promise<Trip | null> => {
     }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const removeUndefined = (obj: any): any => {
+    if (obj === null || obj === undefined) return null;
+    if (typeof obj !== 'object') return obj;
+    if (obj instanceof Timestamp) return obj;
+    if (Array.isArray(obj)) return obj.map(removeUndefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newObj: Record<string, any> = {};
+    for (const key in obj) {
+        const value = removeUndefined(obj[key]);
+        if (value !== undefined) {
+            newObj[key] = value;
+        }
+    }
+    return newObj;
+};
+
 // Update a trip
 export const updateTrip = async (tripId: string, updates: Partial<Trip>): Promise<void> => {
     const { db } = ensureInitialized();
     const docRef = doc(db, 'trips', tripId);
 
+    const sanitizedUpdates = removeUndefined(updates);
     await updateDoc(docRef, {
-        ...updates,
+        ...sanitizedUpdates,
         updatedAt: serverTimestamp(),
     });
 };

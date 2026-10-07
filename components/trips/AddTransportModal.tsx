@@ -394,7 +394,25 @@ export default function AddTransportModal({ isOpen, onClose, onSave, onDelete, d
 
                 <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex gap-3 bg-gray-50 dark:bg-gray-800/50">
                     {initialData && onDelete && (
-                        <button type="button" onClick={() => { if (confirm('Are you sure?')) onDelete(initialData.id).then(onClose); }} className="px-4 py-2 rounded-xl text-red-600 font-semibold mr-auto">Delete</button>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (confirm('Are you sure you want to delete this transport?')) {
+                                    try {
+                                        const idToDelete = initialData.id || '';
+                                        if (idToDelete) {
+                                            await onDelete(idToDelete);
+                                        }
+                                        onClose();
+                                    } catch (err) {
+                                        console.error('Failed to delete transport:', err);
+                                    }
+                                }
+                            }}
+                            className="px-4 py-2 rounded-xl border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors mr-auto"
+                        >
+                            Delete
+                        </button>
                     )}
                     <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 dark:text-gray-300 font-semibold">Cancel</button>
                     <button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="px-8 py-2 bg-primary-600 text-white rounded-xl font-semibold disabled:opacity-50">Save</button>

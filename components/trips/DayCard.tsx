@@ -31,6 +31,8 @@ interface DayCardProps {
     day: DayPlan;
     onAddActivity: () => void;
     onEditActivity: (activity: Activity) => void;
+    onEditTransport?: (transport: TransportationDetails) => void;
+    onDeleteTransport?: (transportId: string) => void;
     onToggleActivityLock: (activityId: string) => void;
     onAddPhoto?: () => void;
     onRemovePhoto?: (photoId: string) => void;
@@ -119,6 +121,8 @@ export default function DayCard({
     day,
     onAddActivity,
     onEditActivity,
+    onEditTransport,
+    onDeleteTransport,
     onToggleActivityLock,
     onAddPhoto,
     onRemovePhoto,
@@ -544,6 +548,8 @@ export default function DayCard({
                                         {item._type === 'transportation' ? (
                                             <TransportCard
                                                 transport={item}
+                                                onClick={onEditTransport ? () => onEditTransport(item) : undefined}
+                                                onDelete={onDeleteTransport ? () => onDeleteTransport(item.id) : undefined}
                                                 onLocationClick={onLocationClick}
                                             />
                                         ) : item._type === 'stay' || item._type === 'stay-checkout' ? (

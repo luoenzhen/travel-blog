@@ -339,39 +339,43 @@ export default function TripDetailsPage() {
                 newDay.accommodationCheckout = undefined;
 
                 // Sync Transportation (Project global transportation onto day if they match date)
-                if (hasTransportation && activeTrip.transportation) {
-                    // Use ISO date string for comparison (YYYY-MM-DD) to avoid timezone issues
-                    const dayDateStr = dayDate.toISOString().split('T')[0];
-                    console.log(`[processedDays] Processing day: ${dayDateStr}`);
+                if (activeTrip.transportation !== undefined) {
+                    if (activeTrip.transportation.length === 0) {
+                        newDay.transportation = [];
+                    } else {
+                        // Use ISO date string for comparison (YYYY-MM-DD) to avoid timezone issues
+                        const dayDateStr = dayDate.toISOString().split('T')[0];
+                        console.log(`[processedDays] Processing day: ${dayDateStr}`);
 
-                    newDay.transportation = activeTrip.transportation.filter(f => {
-                        // departureTime is timestamp
-                        let fDate: Date;
-                        const depTime = f.departureTime as unknown as { seconds?: number; toDate?: () => Date };
-                        if (depTime?.seconds !== undefined) {
-                            fDate = new Date(depTime.seconds * 1000);
-                        } else if (typeof depTime?.toDate === 'function') {
-                            fDate = depTime.toDate();
-                        } else {
-                            fDate = new Date(f.departureTime as unknown as string | number | Date);
-                        }
+                        newDay.transportation = activeTrip.transportation.filter(f => {
+                            // departureTime is timestamp
+                            let fDate: Date;
+                            const depTime = f.departureTime as unknown as { seconds?: number; toDate?: () => Date };
+                            if (depTime?.seconds !== undefined) {
+                                fDate = new Date(depTime.seconds * 1000);
+                            } else if (typeof depTime?.toDate === 'function') {
+                                fDate = depTime.toDate();
+                            } else {
+                                fDate = new Date(f.departureTime as unknown as string | number | Date);
+                            }
 
-                        if (isNaN(fDate.getTime())) {
-                            console.log('[processedDays] Invalid date for transport:', f);
-                            return false;
-                        }
+                            if (isNaN(fDate.getTime())) {
+                                console.log('[processedDays] Invalid date for transport:', f);
+                                return false;
+                            }
 
-                        // Normalize transport date to midnight to compare dates only
-                        const transportDate = new Date(fDate);
-                        transportDate.setHours(0, 0, 0, 0);
-                        const transportDateStr = transportDate.toISOString().split('T')[0];
-                        const matches = transportDateStr === dayDateStr;
-                        console.log(`[processedDays] Transport ${f.flightNumber || f.airline} departure: ${fDate.toISOString()}, normalized to: ${transportDateStr}, day: ${dayDateStr}, matches:`, matches);
+                            // Normalize transport date to midnight to compare dates only
+                            const transportDate = new Date(fDate);
+                            transportDate.setHours(0, 0, 0, 0);
+                            const transportDateStr = transportDate.toISOString().split('T')[0];
+                            const matches = transportDateStr === dayDateStr;
+                            console.log(`[processedDays] Transport ${f.flightNumber || f.airline} departure: ${fDate.toISOString()}, normalized to: ${transportDateStr}, day: ${dayDateStr}, matches:`, matches);
 
-                        return matches;
-                    });
+                            return matches;
+                        });
 
-                    console.log(`[processedDays] Day ${dayDateStr} transport count:`, newDay.transportation.length);
+                        console.log(`[processedDays] Day ${dayDateStr} transport count:`, newDay.transportation.length);
+                    }
                 }
 
                 // Find matching stays for this day
@@ -1535,6 +1539,8 @@ export default function TripDetailsPage() {
                                     day={day}
                                     onAddActivity={() => handleAddActivityClick(day.id)}
                                     onEditActivity={(activity) => handleEditActivityClick(day.id, activity)}
+                                    onEditTransport={handleEditTransportClick}
+                                    onDeleteTransport={handleDeleteTransport}
                                     onToggleActivityLock={(activityId) => handleToggleActivityLock(day.id, activityId)}
                                     onAddPhoto={() => handleAddPhotoClick(day.id)}
                                     onRemovePhoto={(photoId) => handleRemovePhoto(day.id, photoId)}
@@ -1570,6 +1576,8 @@ export default function TripDetailsPage() {
                                                     day={day}
                                                     onAddActivity={() => handleAddActivityClick(day.id)}
                                                     onEditActivity={(activity) => handleEditActivityClick(day.id, activity)}
+                                                    onEditTransport={handleEditTransportClick}
+                                                    onDeleteTransport={handleDeleteTransport}
                                                     onToggleActivityLock={(activityId) => handleToggleActivityLock(day.id, activityId)}
                                                     onAddPhoto={() => handleAddPhotoClick(day.id)}
                                                     onRemovePhoto={(photoId) => handleRemovePhoto(day.id, photoId)}
@@ -1627,6 +1635,21 @@ export default function TripDetailsPage() {
                                                         <div className="flex justify-between items-center gap-2">
                                                             <div className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate flex-1">{transport.airline} {transport.flightNumber}</div>
                                                             <div className="text-xs font-mono text-gray-400 whitespace-nowrap flex-shrink-0">{transport.departureAirportCode} → {transport.arrivalAirportCode}</div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (confirm('Are you sure you want to delete this transport?')) {
+                                                                        handleDeleteTransport(transport.id);
+                                                                    }
+                                                                }}
+                                                                className="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0"
+                                                                title="Delete transport"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 ))}
